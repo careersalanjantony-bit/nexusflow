@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Alan Joy">
+<meta name="theme-color" content="#05070d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/main.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
+<title>Hardening a Fresh Linux Server: The First 30 Minutes — Alan Joy</title>
+<meta name="description" content="A practical, ordered hardening checklist for a new Linux server: patching, SSH lockdown, default-deny firewall, fail2ban, sysctl, attack surface reduction, auditd and tested backups.">
+<link rel="canonical" href="https://careersalanjantony-bit.github.io/nexusflow/posts/linux-server-hardening-checklist.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Hardening a Fresh Linux Server: The First 30 Minutes — Alan Joy">
+<meta property="og:description" content="A practical, ordered hardening checklist for a new Linux server: patching, SSH lockdown, default-deny firewall, fail2ban, sysctl, attack surface reduction, auditd and tested backups.">
+<meta property="og:url" content="https://careersalanjantony-bit.github.io/nexusflow/posts/linux-server-hardening-checklist.html">
+<meta property="og:site_name" content="Alan Joy">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hardening a Fresh Linux Server: The First 30 Minutes — Alan Joy">
+<meta name="twitter:description" content="A practical, ordered hardening checklist for a new Linux server: patching, SSH lockdown, default-deny firewall, fail2ban, sysctl, attack surface reduction, auditd and tested backups.">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}.bar__fill{width:var(--fallback-pct,100%)!important}</style></noscript>
+</head>
+<body data-page="blog" id="top">
+<div class="progress-bar" id="progress"></div>
+
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="../index.html" class="brand" aria-label="Alan Joy — home">
+      <span class="brand__mark" aria-hidden="true">AJ</span>
+      <span>alanjoy<span class="brand__dot">.</span>sh</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html" data-nav="home">Home</a>
+      <a href="../about.html" data-nav="about">About</a>
+      <a href="../services.html" data-nav="services">Services</a>
+      <a href="../projects.html" data-nav="projects">Projects</a>
+      <a href="../blog.html" data-nav="blog">Blog</a>
+      <a href="../contact.html" data-nav="contact">Contact</a>
+    </nav>
+
+    <div class="nav__actions">
+      <a href="../contact.html" class="btn btn--primary btn--sm">Hire me</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="../index.html" data-nav="home">Home</a>
+  <a href="../about.html" data-nav="about">About</a>
+  <a href="../services.html" data-nav="services">Services</a>
+  <a href="../projects.html" data-nav="projects">Projects</a>
+  <a href="../blog.html" data-nav="blog">Blog</a>
+  <a href="../contact.html" data-nav="contact">Contact</a>
+  <a href="../contact.html" class="btn btn--primary">Hire me</a>
+</div>
+
+<main id="main">
+<section class="post-hero">
+  <div class="wrap">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span class="sep">/</span><a href="../blog.html">Blog</a><span class="sep">/</span><span>Security</span>
+    </nav>
+    <h1 class="post-title">Hardening a Fresh Linux Server: The First 30 Minutes</h1>
+    <div class="post-meta">
+      <span class="tag">Security</span>
+      <time datetime="2026-06-09">9 June 2026</time>
+      <span>· 12 min read</span>
+      <span>· by Alan Joy</span>
+    </div>
+  </div>
+</section>
+
+<article class="section" style="padding-top: 0;">
+  <div class="wrap">
+    <div class="article">
+<p>
+  A brand new Linux server is a liability until you've spent half an hour on it. Automated
+  scanners find a fresh public IP within minutes — I've watched SSH brute-force attempts
+  start on a box that had been reachable for under ten minutes.
+</p>
+<p>
+  This is what I do between "the provider says it's ready" and "I'm willing to put customer
+  traffic on it". It's ordered by how much risk each step removes per minute spent.
+</p>
+
+<div class="callout">
+  <span class="callout__ico" aria-hidden="true">💡</span>
+  <p><strong>Before you start:</strong> open a <em>second</em> SSH session and leave it connected. Every time you change SSH or firewall configuration, test the change in a new connection while the old one is still alive. If you lock yourself out, that session is the difference between a fix and a console ticket.</p>
+</div>
+
+<h2 id="patch">1. Patch first, everything else second</h2>
+<p>
+  Provider images are frequently weeks or months old. The most likely way into your server
+  right now is a vulnerability that already has a patch sitting in the repository.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>update everything</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># RHEL / Rocky / Alma
+dnf update -y && dnf install -y epel-release
+
+# Debian / Ubuntu
+apt update && apt full-upgrade -y
+
+# Reboot if the kernel changed — check first
+needs-restarting -r        # RHEL family
+[ -f /var/run/reboot-required ] && echo "reboot needed"   # Debian family</code></pre>
+</div>
+
+<p>Then make sure security updates keep applying without you:</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>automatic security updates</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># RHEL family
+dnf install -y dnf-automatic
+sed -i 's/^apply_updates =.*/apply_updates = yes/' /etc/dnf/automatic.conf
+sed -i 's/^upgrade_type =.*/upgrade_type = security/' /etc/dnf/automatic.conf
+systemctl enable --now dnf-automatic.timer
+
+# Debian family
+apt install -y unattended-upgrades
+dpkg-reconfigure -plow unattended-upgrades</code></pre>
+</div>
+
+<div class="callout callout--danger">
+  <span class="callout__ico" aria-hidden="true">⚠️</span>
+  <p><strong>Security updates only.</strong> Unattended <em>full</em> upgrades on a production web server will eventually restart PHP or MySQL at a time you didn't choose. Restrict automation to the security repository and handle feature upgrades in a window.</p>
+</div>
+
+<h2 id="user">2. A real user, and no more root logins</h2>
+<p>
+  Working as root all day means every mistake is maximally destructive and nothing in the
+  audit log tells you <em>which human</em> did it. Create a named account with sudo, put your
+  key on it, and confirm it works before you disable root.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>create an admin user with key auth</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>adduser alan
+usermod -aG wheel alan          # 'sudo' group on Debian/Ubuntu
+
+mkdir -p /home/alan/.ssh
+cp /root/.ssh/authorized_keys /home/alan/.ssh/   # or paste your public key
+chown -R alan:alan /home/alan/.ssh
+chmod 700 /home/alan/.ssh
+chmod 600 /home/alan/.ssh/authorized_keys</code></pre>
+</div>
+
+<p>
+  Now — <strong>in a new terminal</strong> — log in as that user and run <code>sudo -v</code>. Only when
+  that works do you continue.
+</p>
+
+<h2 id="ssh">3. Lock down SSH</h2>
+<p>
+  SSH is the front door. These four settings remove the overwhelming majority of
+  opportunistic attacks, because almost all of it is automated password guessing.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>/etc/ssh/sshd_config.d/99-hardening.conf</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># No root logins over the network
+PermitRootLogin no
+
+# Keys only — this is the single highest-value line here
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+
+# Don't let unauthenticated sessions linger
+LoginGraceTime 30
+MaxAuthTries 3
+MaxSessions 5
+
+# Only these accounts may log in at all
+AllowUsers alan
+
+# Disable features you almost certainly don't use
+X11Forwarding no
+AllowAgentForwarding no
+PermitEmptyPasswords no</code></pre>
+</div>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>validate, then apply</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>sshd -t && systemctl reload sshd   # -t refuses to reload a broken config</code></pre>
+</div>
+
+<p>
+  On changing the SSH port: it cuts log noise dramatically, which has real value when
+  you're reading logs by hand. It is not a security control — a port scan finds it in
+  seconds. Move it for the quiet, not for the safety.
+</p>
+
+<h2 id="firewall">4. Default-deny firewall</h2>
+<p>
+  The rule is simple: deny everything inbound, then open only what a real user needs.
+  If you can't name who connects to a port, it shouldn't be open.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>firewalld (RHEL family)</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>systemctl enable --now firewalld
+firewall-cmd --set-default-zone=drop
+firewall-cmd --permanent --add-service=ssh
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload
+firewall-cmd --list-all</code></pre>
+</div>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>ufw (Debian family)</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>ufw default deny incoming
+ufw default allow outgoing
+ufw allow OpenSSH
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw enable
+ufw status verbose</code></pre>
+</div>
+
+<p>
+  On hosting servers I generally use CSF instead — it wraps iptables with connection
+  tracking, and its LFD daemon handles login-failure blocking, port-scan detection and
+  process tracking in one place.
+</p>
+
+<h2 id="fail2ban">5. Ban the persistent guessers</h2>
+<p>
+  Key-only SSH already defeats password attacks, but fail2ban stops the noise and covers
+  the other services — mail, FTP, panel logins — where passwords still exist.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>/etc/fail2ban/jail.local</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>[DEFAULT]
+bantime  = 1h
+findtime = 10m
+maxretry = 4
+# Never lock yourself out from the office or a jump host
+ignoreip = 127.0.0.1/8 ::1 203.0.113.0/24
+
+[sshd]
+enabled = true
+
+[postfix-sasl]
+enabled = true</code></pre>
+</div>
+
+<p>
+  Set <code>ignoreip</code> before you enable it, not after you've banned yourself. Everyone does
+  this exactly once.
+</p>
+
+<h2 id="kernel">6. Kernel and network parameters</h2>
+<p>
+  A handful of <code>sysctl</code> values close off spoofing and redirect tricks that have no
+  legitimate use on a normal web server.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>/etc/sysctl.d/99-hardening.conf</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Reject spoofed source addresses
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Ignore ICMP redirects and source routing
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv6.conf.all.accept_redirects = 0
+
+# Log packets with impossible addresses
+net.ipv4.conf.all.log_martians = 1
+
+# SYN flood resistance
+net.ipv4.tcp_syncookies = 1
+
+# Restrict kernel pointer exposure and dmesg
+kernel.kptr_restrict = 2
+kernel.dmesg_restrict = 1
+
+# Protect against symlink/hardlink races in shared /tmp
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1</code></pre>
+</div>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>apply</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>sysctl --system</code></pre>
+</div>
+
+<h2 id="surface">7. Shrink the attack surface</h2>
+<p>
+  Every listening service is a door. Find out what's actually listening — the answer on a
+  default image is usually "more than you expected".
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>what's listening, and why</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Listening sockets with owning process
+ss -tulpn
+
+# Services set to start at boot
+systemctl list-unit-files --state=enabled --type=service
+
+# Disable what you can't justify
+systemctl disable --now rpcbind avahi-daemon cups 2>/dev/null</code></pre>
+</div>
+
+<p>
+  Then tighten the filesystem. Mount options on <code>/tmp</code> and <code>/dev/shm</code> block a
+  common escalation path: dropping a binary in a world-writable directory and executing it.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>/etc/fstab — restrict world-writable mounts</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>/dev/shm      /dev/shm    tmpfs   defaults,nodev,nosuid,noexec   0 0
+/tmp          /tmp        tmpfs   defaults,nodev,nosuid,noexec   0 0</code></pre>
+</div>
+
+<div class="callout callout--danger">
+  <span class="callout__ico" aria-hidden="true">⚠️</span>
+  <p><strong>Test <code>noexec</code> on <code>/tmp</code> before you rely on it.</strong> Some package managers and installers legitimately execute from <code>/tmp</code> and will fail with confusing errors. Verify updates still work before you consider it done.</p>
+</div>
+
+<h2 id="audit">8. Logging you'll be glad of later</h2>
+<p>
+  During an incident, the question is always "when did this start, and what else did they
+  touch?". You can only answer it if you were logging beforehand.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>auditd — minimum useful ruleset</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># /etc/audit/rules.d/hardening.rules
+-w /etc/passwd -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/sudoers -p wa -k privilege
+-w /etc/ssh/sshd_config -p wa -k sshd
+-w /var/log/lastlog -p wa -k logins
+-a always,exit -F arch=b64 -S execve -F euid=0 -k root-commands</code></pre>
+</div>
+
+<p>
+  Just as important: <strong>ship logs off the box</strong>. Local logs are the first thing an
+  attacker edits. Even a nightly rsync to somewhere they don't have credentials for is
+  vastly better than nothing.
+</p>
+
+<h2 id="backups">9. Backups, and a restore you have actually tested</h2>
+<p>
+  Hardening reduces the chance of a bad day. Backups decide how bad the bad day is. The
+  rule I hold to: <strong>a backup nobody has restored is a rumour</strong>.
+</p>
+<ul>
+  <li>Backups go somewhere the server cannot reach with its own credentials — otherwise ransomware encrypts them too.</li>
+  <li>Restore one, on a schedule, into an isolated environment. Automate the check; a human will stop doing it by week three.</li>
+  <li>Know your actual RPO and RTO — how much data can you lose, and how long may recovery take? If you can't answer, you don't have a backup strategy, you have backup files.</li>
+</ul>
+
+<h2 id="verify">10. Verify what you've done</h2>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>post-hardening checks</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Confirm password auth is genuinely off
+ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no user@host
+# expected: "Permission denied (publickey)"
+
+# Confirm the firewall from outside the box
+nmap -Pn -p- your.server.ip
+
+# General audit with a scoring tool
+lynis audit system</code></pre>
+</div>
+
+<hr>
+
+<p>
+  Thirty minutes of this removes the entire class of opportunistic, automated attack that
+  makes up most of what actually hits a server. It won't stop a determined attacker with a
+  zero-day in your application — nothing at this layer will. But it means that when
+  something does happen, it was <em>interesting</em>, and you have the logs to reconstruct it.
+</p>
+
+    </div>
+  </div>
+</article>
+
+<div class="wrap">
+  <div class="post-footer">
+    <div class="author-box reveal">
+      <span class="av" aria-hidden="true">AJ</span>
+      <div>
+        <h4>Alan Joy</h4>
+        <p>
+          Linux server administrator working L2/L3 managed hosting, security hardening,
+          incident response and migrations. Most of these articles started as notes from
+          a ticket I didn't want to solve twice.
+          <a href="../about.html">More about me →</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="post-nav">
+      <a href="../blog.html" class="btn btn--ghost btn--sm">← All articles</a>
+      <a href="../contact.html" class="btn btn--primary btn--sm">Ask me about this</a>
+    </div>
+  </div>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Hardening a Fresh Linux Server: The First 30 Minutes",
+  "description": "A practical, ordered hardening checklist for a new Linux server: patching, SSH lockdown, default-deny firewall, fail2ban, sysctl, attack surface reduction, auditd and tested backups.",
+  "datePublished": "2026-06-09",
+  "author": { "@type": "Person", "name": "Alan Joy", "url": "https://careersalanjantony-bit.github.io/nexusflow/about.html" },
+  "publisher": { "@type": "Person", "name": "Alan Joy" },
+  "mainEntityOfPage": "https://careersalanjantony-bit.github.io/nexusflow/posts/linux-server-hardening-checklist.html",
+  "keywords": "Security, linux, server administration, web hosting"
+}
+</script>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a href="../index.html" class="brand">
+          <span class="brand__mark" aria-hidden="true">AJ</span>
+          <span>alanjoy<span class="brand__dot">.</span>sh</span>
+        </a>
+        <p>Linux server administration, L2/L3 managed hosting support, security hardening and zero-downtime migrations.</p>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+          </a>
+          <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+          </a>
+          <a href="mailto:careers.alanjantony@gmail.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../about.html">About</a></li>
+          <li><a href="../services.html">Services</a></li>
+          <li><a href="../projects.html">Projects</a></li>
+          <li><a href="../blog.html">Blog</a></li>
+          <li><a href="../contact.html">Contact</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Writing</h4>
+        <ul>
+          <li><a href="../posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
+          <li><a href="../posts/linux-server-hardening-checklist.html">Server hardening</a></li>
+          <li><a href="../posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="../posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
+          <li><a href="../posts/detecting-a-compromised-server.html">Incident response</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:careers.alanjantony@gmail.com">careers.alanjantony<br>@gmail.com</a></li>
+          <li><a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener">LinkedIn profile</a></li>
+          <li><a href="../contact.html">Start a project</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p>&copy; <span data-year>2026</span> Alan Joy. All rights reserved.</p>
+      <p>Built by hand — HTML, CSS &amp; vanilla JS. No trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="../assets/js/main.js"></script>
+
+</body>
+</html>

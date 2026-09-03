@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Alan Joy">
+<meta name="theme-color" content="#05070d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/main.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
+<title>Reading the Signs: Detecting a Compromised Server Early — Alan Joy</title>
+<meta name="description" content="The quiet indicators of a compromised Linux server, the commands that surface them, and a containment order that preserves the evidence you need to find the entry point.">
+<link rel="canonical" href="https://careersalanjantony-bit.github.io/nexusflow/posts/detecting-a-compromised-server.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Reading the Signs: Detecting a Compromised Server Early — Alan Joy">
+<meta property="og:description" content="The quiet indicators of a compromised Linux server, the commands that surface them, and a containment order that preserves the evidence you need to find the entry point.">
+<meta property="og:url" content="https://careersalanjantony-bit.github.io/nexusflow/posts/detecting-a-compromised-server.html">
+<meta property="og:site_name" content="Alan Joy">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Reading the Signs: Detecting a Compromised Server Early — Alan Joy">
+<meta name="twitter:description" content="The quiet indicators of a compromised Linux server, the commands that surface them, and a containment order that preserves the evidence you need to find the entry point.">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}.bar__fill{width:var(--fallback-pct,100%)!important}</style></noscript>
+</head>
+<body data-page="blog" id="top">
+<div class="progress-bar" id="progress"></div>
+
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="../index.html" class="brand" aria-label="Alan Joy — home">
+      <span class="brand__mark" aria-hidden="true">AJ</span>
+      <span>alanjoy<span class="brand__dot">.</span>sh</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html" data-nav="home">Home</a>
+      <a href="../about.html" data-nav="about">About</a>
+      <a href="../services.html" data-nav="services">Services</a>
+      <a href="../projects.html" data-nav="projects">Projects</a>
+      <a href="../blog.html" data-nav="blog">Blog</a>
+      <a href="../contact.html" data-nav="contact">Contact</a>
+    </nav>
+
+    <div class="nav__actions">
+      <a href="../contact.html" class="btn btn--primary btn--sm">Hire me</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="../index.html" data-nav="home">Home</a>
+  <a href="../about.html" data-nav="about">About</a>
+  <a href="../services.html" data-nav="services">Services</a>
+  <a href="../projects.html" data-nav="projects">Projects</a>
+  <a href="../blog.html" data-nav="blog">Blog</a>
+  <a href="../contact.html" data-nav="contact">Contact</a>
+  <a href="../contact.html" class="btn btn--primary">Hire me</a>
+</div>
+
+<main id="main">
+<section class="post-hero">
+  <div class="wrap">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span class="sep">/</span><a href="../blog.html">Blog</a><span class="sep">/</span><span>Security</span>
+    </nav>
+    <h1 class="post-title">Reading the Signs: Detecting a Compromised Server Early</h1>
+    <div class="post-meta">
+      <span class="tag">Security</span>
+      <time datetime="2026-03-08">8 March 2026</time>
+      <span>· 12 min read</span>
+      <span>· by Alan Joy</span>
+    </div>
+  </div>
+</section>
+
+<article class="section" style="padding-top: 0;">
+  <div class="wrap">
+    <div class="article">
+<p>
+  By the time a customer calls to say their site has been defaced, the attacker has usually
+  been on the server for weeks. Defacement is loud, and loud is the <em>last</em> thing an
+  attacker does — because it ends the access they've been quietly monetising.
+</p>
+<p>
+  The useful signals come much earlier, and they're mostly boring: a load average that's
+  slightly higher than it used to be, a cron job nobody wrote, mail queuing for domains you
+  don't host. This is what to look for, and — just as important — the order to act in once
+  you've found it.
+</p>
+
+<div class="callout callout--danger">
+  <span class="callout__ico" aria-hidden="true">⚠️</span>
+  <p><strong>If you already suspect a compromise, read the containment section before running anything else.</strong> The instinct to immediately delete the malicious file destroys the timeline you need to work out how they got in — and if you don't find that, they simply come back.</p>
+</div>
+
+<h2 id="signals">The early signals</h2>
+
+<h3>1. Outbound mail you didn't send</h3>
+<p>
+  The most common monetisation of a compromised hosting account is spam. It shows up in the
+  mail queue long before anyone notices anything else.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>mail queue health</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Exim: queue size and top senders
+exim -bpc
+exim -bp | exiqsumm | head -20
+
+# Postfix
+mailq | tail -1
+qshape deferred | head
+
+# Which script sent it — the smoking gun on a shared server
+grep 'cwd=' /var/log/exim_mainlog | awk -F'cwd=' '{print $2}' \
+  | awk '{print $1}' | sort | uniq -c | sort -rn | head</code></pre>
+</div>
+
+<p>
+  That last command is the one I reach for first on cPanel servers. Exim logs the working
+  directory of the script that called <code>sendmail</code> — so it points straight at the
+  compromised account, and often the exact directory.
+</p>
+
+<h3>2. Processes that shouldn't exist</h3>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>process anomalies</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Processes running from world-writable or temp directories
+ls -l /proc/*/cwd 2>/dev/null | grep -E '/tmp|/dev/shm|/var/tmp'
+
+# Deleted binaries still running — a classic hiding technique
+ls -l /proc/*/exe 2>/dev/null | grep deleted
+
+# Long-running CPU burners (miners look exactly like this)
+ps -eo pid,user,etime,time,pcpu,cmd --sort=-time | head -15
+
+# Network connections with owning process
+ss -tupn state established</code></pre>
+</div>
+
+<p>
+  A process whose binary has been deleted but is still running is very rarely legitimate.
+  Neither is a web user with an outbound connection to an unfamiliar IP on a high port.
+</p>
+
+<h3>3. Files that changed when nobody deployed</h3>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>recently modified files</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># PHP files changed in the last 48 hours under web roots
+find /home/*/public_html -name '*.php' -mtime -2 -ls
+
+# Files whose inode changed (ctime) — catches timestamp tampering,
+# because an attacker who sets mtime back usually forgets ctime
+find /home/*/public_html -name '*.php' -ctime -7 -ls
+
+# Classic obfuscation markers
+grep -rlE 'eval\s*\(|base64_decode\s*\(|gzinflate\s*\(|str_rot13\s*\(' \
+     /home/*/public_html --include='*.php' | head -30
+
+# Executables somewhere they have no business being
+find /tmp /var/tmp /dev/shm -type f -executable -ls</code></pre>
+</div>
+
+<div class="callout">
+  <span class="callout__ico" aria-hidden="true">💡</span>
+  <p><strong>mtime lies, ctime is harder to fake.</strong> Attackers routinely set a webshell's modification time to match neighbouring files. Changing ctime requires changing the system clock, which most don't bother with — so a file with an old mtime and a recent ctime is worth a very close look.</p>
+</div>
+
+<h3>4. Persistence mechanisms</h3>
+<p>An attacker who only has a webshell loses access when you patch. So they add a way back in.</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>where persistence hides</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Every user's crontab
+for u in $(cut -f1 -d: /etc/passwd); do
+  echo "--- $u"; crontab -l -u "$u" 2>/dev/null
+done
+ls -la /etc/cron.*/ /var/spool/cron/
+
+# Unexpected SSH keys — check every account, not just root
+find /home /root -name authorized_keys -exec ls -l {} \; -exec cat {} \;
+
+# Accounts with UID 0 other than root
+awk -F: '$3 == 0 {print $1}' /etc/passwd
+
+# Accounts with a login shell that shouldn't have one
+awk -F: '$7 !~ /(nologin|false)$/ {print $1, $7}' /etc/passwd
+
+# Recently added or modified systemd units
+find /etc/systemd/system /usr/lib/systemd/system -mtime -14 -ls</code></pre>
+</div>
+
+<h3>5. Log gaps and quiet tampering</h3>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>log integrity</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Successful SSH logins — anything unfamiliar?
+grep 'Accepted' /var/log/secure | tail -40
+last -20
+
+# A truncated or unusually small log is a signal in itself
+ls -la /var/log/{secure,auth.log,wtmp,btmp}
+
+# Verify system binaries against package checksums
+rpm -Va --nomtime --nofiledigest | grep -E '^..5'   # RHEL family
+debsums -c                                          # Debian family</code></pre>
+</div>
+
+<p>
+  That verification step is genuinely valuable. If <code>ps</code>, <code>ls</code>, <code>netstat</code> or
+  <code>find</code> fails a checksum, you're dealing with a rootkit and everything the server has
+  told you so far is unreliable.
+</p>
+
+<h2 id="containment">If you find something: the order matters</h2>
+<p>
+  This is where most people go wrong. The instinct is to delete the malicious file
+  immediately. Resist it for ten minutes.
+</p>
+
+<ol>
+  <li>
+    <strong>Preserve before you change.</strong> Snapshot the VM if you can. Otherwise capture the
+    volatile state — running processes, network connections, open files, logged-in users —
+    to a file <em>off</em> the server. It disappears the moment you reboot.
+  </li>
+  <li>
+    <strong>Contain, don't destroy.</strong> Suspend the affected account, or firewall the server
+    down to your own management IP. This stops the ongoing harm — spam, attacks on others —
+    without wiping the evidence.
+  </li>
+  <li>
+    <strong>Scope it.</strong> How far did they get? One account, or root? On a shared server,
+    check whether the same webshell signature appears under other users. Establish the
+    earliest timestamp you can find — that's when it started, and anything after it is suspect.
+  </li>
+  <li>
+    <strong>Find the entry point.</strong> Correlate the webshell's creation time with the access
+    logs for that minute. It's usually an outdated plugin, a file upload with no validation,
+    or reused credentials. <strong>If you skip this step, you will do the whole thing again next
+    month.</strong>
+  </li>
+  <li>
+    <strong>Eradicate.</strong> Prefer restoring from a backup taken before the earliest
+    indicator over hand-cleaning. Hand-cleaning means being sure you found every file, and
+    you can't be sure.
+  </li>
+  <li>
+    <strong>Rotate every credential</strong> the compromised context could reach: SSH keys, panel
+    logins, database passwords, API keys, mail passwords. Assume all of them were read.
+  </li>
+  <li>
+    <strong>Close the hole,</strong> then restore service — patch the vulnerable component, fix the
+    permissions, add the WAF rule.
+  </li>
+  <li>
+    <strong>Watch.</strong> Attackers come back to check on their access. Monitor closely for a
+    fortnight; a returning connection attempt tells you whether you actually got everything.
+  </li>
+</ol>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>capture volatile state before touching anything</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>D=/root/ir-$(date +%F-%H%M); mkdir -p "$D"
+ps auxwwf            > "$D/processes.txt"
+ss -tupn             > "$D/connections.txt"
+lsof -nP             > "$D/openfiles.txt" 2>/dev/null
+last -50             > "$D/logins.txt"
+crontab -l -u root   > "$D/root-cron.txt" 2>/dev/null
+cp /var/log/secure /var/log/messages "$D/" 2>/dev/null
+tar czf "$D.tar.gz" "$D" && echo "captured: $D.tar.gz"
+# Now copy that archive OFF the server before you continue.</code></pre>
+</div>
+
+<h2 id="rebuild">When to rebuild instead of clean</h2>
+<p>Some findings mean cleaning is no longer a defensible choice. Rebuild if:</p>
+<ul>
+  <li><strong>Root was compromised.</strong> With root, anything can be modified — including the tools you'd use to verify the cleanup.</li>
+  <li><strong>System binaries fail checksum verification.</strong> You can't trust the server's own account of itself.</li>
+  <li><strong>You can't establish the entry point.</strong> An unknown hole is an open hole.</li>
+  <li><strong>Kernel modules were loaded that you can't account for.</strong></li>
+</ul>
+<p>
+  Rebuilding is slower and nobody enjoys telling a customer. It's still cheaper than
+  discovering three weeks later that the backdoor survived the cleanup.
+</p>
+
+<h2 id="prevent">Making the next one visible sooner</h2>
+<ul>
+  <li><strong>File integrity monitoring</strong> (AIDE, Tripwire, or the panel's own scanner) alerting on changes under web roots outside a deploy window.</li>
+  <li><strong>Logs shipped off the box</strong> in real time. Local logs are the first thing edited.</li>
+  <li><strong>Outbound mail rate limits per account.</strong> Turns a spam run from a blacklisting into an alert.</li>
+  <li><strong>Egress filtering.</strong> Web servers rarely need to make arbitrary outbound connections; blocking that breaks most droppers and miners.</li>
+  <li><strong>A maintained inventory of CMS and plugin versions,</strong> so "which sites are vulnerable to this new CVE" is a query, not a project.</li>
+</ul>
+
+<hr>
+
+<p>
+  The pattern worth internalising: <strong>the compromise you notice is rarely the compromise
+  that matters.</strong> Defacement, blacklisting and ransom notes are the visible end of
+  something that started quietly weeks earlier. Look for the quiet part — and when you find
+  it, take the ten minutes to preserve evidence before you start deleting. That decision is
+  usually the difference between fixing it once and fixing it monthly.
+</p>
+
+    </div>
+  </div>
+</article>
+
+<div class="wrap">
+  <div class="post-footer">
+    <div class="author-box reveal">
+      <span class="av" aria-hidden="true">AJ</span>
+      <div>
+        <h4>Alan Joy</h4>
+        <p>
+          Linux server administrator working L2/L3 managed hosting, security hardening,
+          incident response and migrations. Most of these articles started as notes from
+          a ticket I didn't want to solve twice.
+          <a href="../about.html">More about me →</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="post-nav">
+      <a href="../blog.html" class="btn btn--ghost btn--sm">← All articles</a>
+      <a href="../contact.html" class="btn btn--primary btn--sm">Ask me about this</a>
+    </div>
+  </div>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Reading the Signs: Detecting a Compromised Server Early",
+  "description": "The quiet indicators of a compromised Linux server, the commands that surface them, and a containment order that preserves the evidence you need to find the entry point.",
+  "datePublished": "2026-03-08",
+  "author": { "@type": "Person", "name": "Alan Joy", "url": "https://careersalanjantony-bit.github.io/nexusflow/about.html" },
+  "publisher": { "@type": "Person", "name": "Alan Joy" },
+  "mainEntityOfPage": "https://careersalanjantony-bit.github.io/nexusflow/posts/detecting-a-compromised-server.html",
+  "keywords": "Security, linux, server administration, web hosting"
+}
+</script>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a href="../index.html" class="brand">
+          <span class="brand__mark" aria-hidden="true">AJ</span>
+          <span>alanjoy<span class="brand__dot">.</span>sh</span>
+        </a>
+        <p>Linux server administration, L2/L3 managed hosting support, security hardening and zero-downtime migrations.</p>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+          </a>
+          <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+          </a>
+          <a href="mailto:careers.alanjantony@gmail.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../about.html">About</a></li>
+          <li><a href="../services.html">Services</a></li>
+          <li><a href="../projects.html">Projects</a></li>
+          <li><a href="../blog.html">Blog</a></li>
+          <li><a href="../contact.html">Contact</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Writing</h4>
+        <ul>
+          <li><a href="../posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
+          <li><a href="../posts/linux-server-hardening-checklist.html">Server hardening</a></li>
+          <li><a href="../posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="../posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
+          <li><a href="../posts/detecting-a-compromised-server.html">Incident response</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:careers.alanjantony@gmail.com">careers.alanjantony<br>@gmail.com</a></li>
+          <li><a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener">LinkedIn profile</a></li>
+          <li><a href="../contact.html">Start a project</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p>&copy; <span data-year>2026</span> Alan Joy. All rights reserved.</p>
+      <p>Built by hand — HTML, CSS &amp; vanilla JS. No trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="../assets/js/main.js"></script>
+
+</body>
+</html>

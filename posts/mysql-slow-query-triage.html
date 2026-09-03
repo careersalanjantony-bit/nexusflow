@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Alan Joy">
+<meta name="theme-color" content="#05070d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/main.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
+<title>MySQL Slow Query Triage for Hosting Engineers — Alan Joy</title>
+<meta name="description" content="How to find the query hurting your MySQL server when you do not own the application: slow query log, pt-query-digest, EXPLAIN, safe index creation and the config defaults that matter.">
+<link rel="canonical" href="https://careersalanjantony-bit.github.io/nexusflow/posts/mysql-slow-query-triage.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MySQL Slow Query Triage for Hosting Engineers — Alan Joy">
+<meta property="og:description" content="How to find the query hurting your MySQL server when you do not own the application: slow query log, pt-query-digest, EXPLAIN, safe index creation and the config defaults that matter.">
+<meta property="og:url" content="https://careersalanjantony-bit.github.io/nexusflow/posts/mysql-slow-query-triage.html">
+<meta property="og:site_name" content="Alan Joy">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MySQL Slow Query Triage for Hosting Engineers — Alan Joy">
+<meta name="twitter:description" content="How to find the query hurting your MySQL server when you do not own the application: slow query log, pt-query-digest, EXPLAIN, safe index creation and the config defaults that matter.">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}.bar__fill{width:var(--fallback-pct,100%)!important}</style></noscript>
+</head>
+<body data-page="blog" id="top">
+<div class="progress-bar" id="progress"></div>
+
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="../index.html" class="brand" aria-label="Alan Joy — home">
+      <span class="brand__mark" aria-hidden="true">AJ</span>
+      <span>alanjoy<span class="brand__dot">.</span>sh</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html" data-nav="home">Home</a>
+      <a href="../about.html" data-nav="about">About</a>
+      <a href="../services.html" data-nav="services">Services</a>
+      <a href="../projects.html" data-nav="projects">Projects</a>
+      <a href="../blog.html" data-nav="blog">Blog</a>
+      <a href="../contact.html" data-nav="contact">Contact</a>
+    </nav>
+
+    <div class="nav__actions">
+      <a href="../contact.html" class="btn btn--primary btn--sm">Hire me</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="../index.html" data-nav="home">Home</a>
+  <a href="../about.html" data-nav="about">About</a>
+  <a href="../services.html" data-nav="services">Services</a>
+  <a href="../projects.html" data-nav="projects">Projects</a>
+  <a href="../blog.html" data-nav="blog">Blog</a>
+  <a href="../contact.html" data-nav="contact">Contact</a>
+  <a href="../contact.html" class="btn btn--primary">Hire me</a>
+</div>
+
+<main id="main">
+<section class="post-hero">
+  <div class="wrap">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span class="sep">/</span><a href="../blog.html">Blog</a><span class="sep">/</span><span>Databases</span>
+    </nav>
+    <h1 class="post-title">MySQL Slow Query Triage for Hosting Engineers</h1>
+    <div class="post-meta">
+      <span class="tag">Databases</span>
+      <time datetime="2026-02-02">2 February 2026</time>
+      <span>· 10 min read</span>
+      <span>· by Alan Joy</span>
+    </div>
+  </div>
+</section>
+
+<article class="section" style="padding-top: 0;">
+  <div class="wrap">
+    <div class="article">
+<p>
+  On a managed hosting server you almost never own the application. You can't read its
+  source, you can't refactor its ORM, and the developer who wrote the query left two years
+  ago. What you <em>can</em> do is find the specific query that's hurting the server, prove it,
+  and either fix it at the database layer or hand the developer something actionable.
+</p>
+<p>
+  This is that workflow.
+</p>
+
+<h2 id="confirm">Step 1: confirm it's actually the database</h2>
+<p>
+  Before blaming MySQL, check that MySQL is the bottleneck rather than a victim of one.
+  A server that's swapping makes every query slow — that's a memory problem wearing a
+  database costume.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>is MySQL the cause or a symptom?</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># What's running right now
+mysqladmin processlist | head -30
+
+# Queries running longer than 5 seconds — the ones that matter
+mysql -e "SELECT id, user, db, time, state, LEFT(info, 120) AS query
+          FROM information_schema.processlist
+          WHERE command != 'Sleep' AND time > 5
+          ORDER BY time DESC;"</code></pre>
+</div>
+
+<p>
+  A processlist full of <code>Sending data</code> or <code>Copying to tmp table</code> entries with high
+  <code>time</code> values is a genuine query problem. A processlist that's mostly idle while load
+  is high means look elsewhere.
+</p>
+
+<h2 id="slowlog">Step 2: turn on the slow query log</h2>
+<p>
+  The processlist is a snapshot. The slow query log is the record — and it's the single most
+  useful diagnostic MySQL offers.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>enable without restarting</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>SET GLOBAL slow_query_log = 'ON';
+SET GLOBAL slow_query_log_file = '/var/log/mysql/slow.log';
+SET GLOBAL long_query_time = 1;
+SET GLOBAL log_queries_not_using_indexes = 'ON';</code></pre>
+</div>
+
+<div class="callout">
+  <span class="callout__ico" aria-hidden="true">💡</span>
+  <p><strong>Set <code>long_query_time</code> to 1, not 10.</strong> The default of 10 seconds only catches disasters. Most real damage comes from a query taking 1.5 seconds that runs four hundred times a minute — invisible at the default threshold, and by far the biggest contributor to load.</p>
+</div>
+
+<div class="callout callout--danger">
+  <span class="callout__ico" aria-hidden="true">⚠️</span>
+  <p><strong>Turn <code>log_queries_not_using_indexes</code> back off when you're done.</strong> On a busy server it can fill a disk in hours. Set a reminder, and make sure logrotate covers the file.</p>
+</div>
+
+<h2 id="analyse">Step 3: analyse it properly</h2>
+<p>
+  Don't read the raw log. Aggregate it — you want the query that costs the most
+  <em>in total</em>, which is often not the slowest single query.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>aggregate the log</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Bundled with MySQL — sort by total time, top 10
+mysqldumpslow -s t -t 10 /var/log/mysql/slow.log
+
+# Percona Toolkit — better output, worth installing
+pt-query-digest /var/log/mysql/slow.log | head -60</code></pre>
+</div>
+
+<p><code>pt-query-digest</code> gives you a ranked profile that looks roughly like this:</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>a query digest profile</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Profile
+# Rank Query ID           Response time   Calls R/Call
+# ==== ================== =============== ===== ======
+#    1 0x3A2E9F1C...       842.1131 61.2%  4021 0.2094
+#    2 0x9B4D2E88...       201.7742 14.7%     3 67.2581
+#    3 0x1F7C0A55...        98.4410  7.1%  8802 0.0112</code></pre>
+</div>
+
+<p>
+  Read that carefully. Query #2 is the slowest per call at 67 seconds — genuinely alarming.
+  But query #1 consumes <strong>61% of all database time</strong> because it runs four thousand times.
+  Fix #1 first. This is exactly the judgement the aggregate view gives you and a raw log
+  doesn't.
+</p>
+
+<h2 id="explain">Step 4: EXPLAIN the offender</h2>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>EXPLAIN</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>EXPLAIN SELECT * FROM wp_postmeta
+WHERE meta_key = '_order_total' AND meta_value > 100;</code></pre>
+</div>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>output</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>id  select_type  table        type  possible_keys  key   rows      Extra
+1   SIMPLE       wp_postmeta  ALL   NULL           NULL  2841003   Using where</code></pre>
+</div>
+
+<p>Three fields tell the story:</p>
+<ul>
+  <li><code>type: ALL</code> — a full table scan. Every row read to answer the query.</li>
+  <li><code>key: NULL</code> — no index used at all.</li>
+  <li><code>rows: 2841003</code> — the estimated number of rows examined. Compare that with how many the query actually returns; a huge gap is the problem in one number.</li>
+</ul>
+
+<p>The <code>type</code> column, best to worst:</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>type</th><th>Meaning</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><code>const</code> / <code>eq_ref</code></td><td>One row via primary or unique key</td><td>Optimal</td></tr>
+    <tr><td><code>ref</code></td><td>Index lookup returning several rows</td><td>Good</td></tr>
+    <tr><td><code>range</code></td><td>Indexed range scan</td><td>Usually fine</td></tr>
+    <tr><td><code>index</code></td><td>Full scan of the index</td><td>Suspicious</td></tr>
+    <tr><td><code>ALL</code></td><td>Full table scan</td><td>Fix this</td></tr>
+  </tbody>
+</table></div>
+
+<p>And in <code>Extra</code>, three phrases that mean real work is happening on disk:</p>
+<ul>
+  <li><code>Using filesort</code> — results sorted outside an index. Expensive on large sets.</li>
+  <li><code>Using temporary</code> — a temp table was built; if it exceeds <code>tmp_table_size</code> it lands on disk.</li>
+  <li><code>Using join buffer</code> — a join running without a usable index on the joined column.</li>
+</ul>
+
+<h2 id="index">Step 5: add the index — carefully</h2>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>check before you create</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>-- What already exists?
+SHOW INDEX FROM wp_postmeta;
+
+-- Table size, so you know what the operation will cost
+SELECT table_name,
+       ROUND(data_length/1024/1024) AS data_mb,
+       ROUND(index_length/1024/1024) AS index_mb,
+       table_rows
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+ORDER BY data_length DESC LIMIT 10;
+
+-- Create it (online DDL avoids locking on modern InnoDB)
+ALTER TABLE wp_postmeta
+  ADD INDEX idx_meta_key_value (meta_key, meta_value(20)),
+  ALGORITHM=INPLACE, LOCK=NONE;</code></pre>
+</div>
+
+<div class="callout callout--danger">
+  <span class="callout__ico" aria-hidden="true">⚠️</span>
+  <p><strong>Adding an index to a large production table is a real operation.</strong> Do it in a maintenance window, take a backup first, and verify <code>ALGORITHM=INPLACE, LOCK=NONE</code> is actually accepted — if MySQL rejects it, the operation will lock the table for the duration. On a multi-gigabyte table that's an outage, not a tune-up.</p>
+</div>
+
+<p>Index principles worth holding on to:</p>
+<ul>
+  <li><strong>Order matters in composite indexes.</strong> An index on <code>(a, b)</code> serves queries filtering on <code>a</code>, or on <code>a AND b</code> — but not <code>b</code> alone.</li>
+  <li><strong>Most selective column first,</strong> generally — the one that eliminates the most rows.</li>
+  <li><strong>Indexes cost writes.</strong> Every INSERT and UPDATE maintains them. Don't index everything.</li>
+  <li><strong>Prefix-index long text columns</strong> (<code>meta_value(20)</code>) rather than indexing the whole column.</li>
+</ul>
+
+<h2 id="config">Step 6: check the obvious config mistakes</h2>
+<p>Before deep tuning, verify the two settings that are wrong most often:</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>the two that matter most</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+SHOW VARIABLES LIKE 'max_connections';
+
+-- Buffer pool efficiency: reads served from memory vs. from disk
+SHOW STATUS LIKE 'Innodb_buffer_pool_read%';</code></pre>
+</div>
+
+<p>
+  <strong><code>innodb_buffer_pool_size</code></strong> is the single most impactful setting. On a dedicated
+  database server, 60–70% of RAM. On a shared hosting box also running Apache and PHP, much
+  less — but the default of 128 MB is almost always far too small, and I've found it
+  unchanged on servers with 64 GB of RAM.
+</p>
+<p>
+  Compare <code>Innodb_buffer_pool_reads</code> (served from disk) against
+  <code>Innodb_buffer_pool_read_requests</code> (served from memory). If the disk figure is more
+  than a percent or so of the total, your working set doesn't fit in the pool.
+</p>
+<p>
+  <strong><code>max_connections</code></strong> set very high is a common cargo-cult fix. It doesn't add
+  capacity — it just lets more clients queue up simultaneously, converting a fast failure
+  into a slow, memory-hungry one. If you're hitting the limit, the fix is upstream: fewer
+  PHP-FPM children, or connection pooling.
+</p>
+
+<h2 id="cantfix">Step 7: when you can't fix it yourself</h2>
+<p>
+  Sometimes the query is genuinely bad and no index saves it — a <code>SELECT *</code> with three
+  joins and no <code>LIMIT</code> against a table that grows forever. That needs an application
+  change, and your job becomes making the case unarguable.
+</p>
+<p>Give the developer:</p>
+<ul>
+  <li>The exact query text, normalised, from the digest.</li>
+  <li>Its <code>EXPLAIN</code> output showing the scan.</li>
+  <li>Call count and total database time — "this is 61% of all query time on the server".</li>
+  <li>Rows examined versus rows returned, which usually makes the problem self-evident.</li>
+  <li>A specific suggestion: the index you'd add, or the missing <code>LIMIT</code>.</li>
+</ul>
+<p>
+  That's a great deal more persuasive than "the database is slow", and in my experience it's
+  the difference between a fix this sprint and a ticket that ages for six months.
+</p>
+
+<hr>
+
+<p>
+  The method in one line: <strong>confirm it's the database, log the slow queries, aggregate by
+  total time not per-call time, EXPLAIN the top offender, and fix what that reveals.</strong> Most
+  of the time it's a missing index and you can fix it yourself in a window. The rest of the
+  time, you now have the evidence to get someone else to.
+</p>
+
+    </div>
+  </div>
+</article>
+
+<div class="wrap">
+  <div class="post-footer">
+    <div class="author-box reveal">
+      <span class="av" aria-hidden="true">AJ</span>
+      <div>
+        <h4>Alan Joy</h4>
+        <p>
+          Linux server administrator working L2/L3 managed hosting, security hardening,
+          incident response and migrations. Most of these articles started as notes from
+          a ticket I didn't want to solve twice.
+          <a href="../about.html">More about me →</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="post-nav">
+      <a href="../blog.html" class="btn btn--ghost btn--sm">← All articles</a>
+      <a href="../contact.html" class="btn btn--primary btn--sm">Ask me about this</a>
+    </div>
+  </div>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "MySQL Slow Query Triage for Hosting Engineers",
+  "description": "How to find the query hurting your MySQL server when you do not own the application: slow query log, pt-query-digest, EXPLAIN, safe index creation and the config defaults that matter.",
+  "datePublished": "2026-02-02",
+  "author": { "@type": "Person", "name": "Alan Joy", "url": "https://careersalanjantony-bit.github.io/nexusflow/about.html" },
+  "publisher": { "@type": "Person", "name": "Alan Joy" },
+  "mainEntityOfPage": "https://careersalanjantony-bit.github.io/nexusflow/posts/mysql-slow-query-triage.html",
+  "keywords": "Databases, linux, server administration, web hosting"
+}
+</script>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a href="../index.html" class="brand">
+          <span class="brand__mark" aria-hidden="true">AJ</span>
+          <span>alanjoy<span class="brand__dot">.</span>sh</span>
+        </a>
+        <p>Linux server administration, L2/L3 managed hosting support, security hardening and zero-downtime migrations.</p>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+          </a>
+          <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+          </a>
+          <a href="mailto:careers.alanjantony@gmail.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../about.html">About</a></li>
+          <li><a href="../services.html">Services</a></li>
+          <li><a href="../projects.html">Projects</a></li>
+          <li><a href="../blog.html">Blog</a></li>
+          <li><a href="../contact.html">Contact</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Writing</h4>
+        <ul>
+          <li><a href="../posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
+          <li><a href="../posts/linux-server-hardening-checklist.html">Server hardening</a></li>
+          <li><a href="../posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="../posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
+          <li><a href="../posts/detecting-a-compromised-server.html">Incident response</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:careers.alanjantony@gmail.com">careers.alanjantony<br>@gmail.com</a></li>
+          <li><a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener">LinkedIn profile</a></li>
+          <li><a href="../contact.html">Start a project</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p>&copy; <span data-year>2026</span> Alan Joy. All rights reserved.</p>
+      <p>Built by hand — HTML, CSS &amp; vanilla JS. No trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="../assets/js/main.js"></script>
+
+</body>
+</html>
