@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Alan Joy">
+<meta name="theme-color" content="#05070d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/main.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
+<title>Zero-Downtime cPanel Migration: A Field-Tested Runbook — Alan Joy</title>
+<meta name="description" content="The complete runbook for migrating live cPanel accounts between servers without customer-visible downtime: pre-flight audit, TTL staging, delta syncs, verification and rollback.">
+<link rel="canonical" href="https://careersalanjantony-bit.github.io/nexusflow/posts/zero-downtime-cpanel-migration.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Zero-Downtime cPanel Migration: A Field-Tested Runbook — Alan Joy">
+<meta property="og:description" content="The complete runbook for migrating live cPanel accounts between servers without customer-visible downtime: pre-flight audit, TTL staging, delta syncs, verification and rollback.">
+<meta property="og:url" content="https://careersalanjantony-bit.github.io/nexusflow/posts/zero-downtime-cpanel-migration.html">
+<meta property="og:site_name" content="Alan Joy">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Zero-Downtime cPanel Migration: A Field-Tested Runbook — Alan Joy">
+<meta name="twitter:description" content="The complete runbook for migrating live cPanel accounts between servers without customer-visible downtime: pre-flight audit, TTL staging, delta syncs, verification and rollback.">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}.bar__fill{width:var(--fallback-pct,100%)!important}</style></noscript>
+</head>
+<body data-page="blog" id="top">
+<div class="progress-bar" id="progress"></div>
+
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="../index.html" class="brand" aria-label="Alan Joy — home">
+      <span class="brand__mark" aria-hidden="true">AJ</span>
+      <span>alanjoy<span class="brand__dot">.</span>sh</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html" data-nav="home">Home</a>
+      <a href="../about.html" data-nav="about">About</a>
+      <a href="../services.html" data-nav="services">Services</a>
+      <a href="../projects.html" data-nav="projects">Projects</a>
+      <a href="../blog.html" data-nav="blog">Blog</a>
+      <a href="../contact.html" data-nav="contact">Contact</a>
+    </nav>
+
+    <div class="nav__actions">
+      <a href="../contact.html" class="btn btn--primary btn--sm">Hire me</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="../index.html" data-nav="home">Home</a>
+  <a href="../about.html" data-nav="about">About</a>
+  <a href="../services.html" data-nav="services">Services</a>
+  <a href="../projects.html" data-nav="projects">Projects</a>
+  <a href="../blog.html" data-nav="blog">Blog</a>
+  <a href="../contact.html" data-nav="contact">Contact</a>
+  <a href="../contact.html" class="btn btn--primary">Hire me</a>
+</div>
+
+<main id="main">
+<section class="post-hero">
+  <div class="wrap">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span class="sep">/</span><a href="../blog.html">Blog</a><span class="sep">/</span><span>Migrations</span>
+    </nav>
+    <h1 class="post-title">Zero-Downtime cPanel Migration: A Field-Tested Runbook</h1>
+    <div class="post-meta">
+      <span class="tag">Migrations</span>
+      <time datetime="2026-07-18">18 July 2026</time>
+      <span>· 14 min read</span>
+      <span>· by Alan Joy</span>
+    </div>
+  </div>
+</section>
+
+<article class="section" style="padding-top: 0;">
+  <div class="wrap">
+    <div class="article">
+<p>
+  Every hosting engineer eventually gets handed the same task: <em>"move these accounts
+  to the new server, and don't let anyone notice."</em> It sounds simple. It goes wrong in
+  the same four or five places every time.
+</p>
+<p>
+  This is the runbook I actually follow. It assumes cPanel/WHM on both ends, but the
+  shape of it — audit, stage the DNS, sync twice, verify, keep a way back — applies to
+  any migration you've been asked to do without a maintenance banner.
+</p>
+
+<div class="callout">
+  <span class="callout__ico" aria-hidden="true">💡</span>
+  <p><strong>The core idea:</strong> "zero downtime" doesn't mean the sites never move. It means that at every single moment during the move, <em>some</em> correct server is answering the request. That's achievable. Instantaneous DNS is not.</p>
+</div>
+
+<h2 id="pre-flight">1. The pre-flight audit</h2>
+<p>
+  The migration starts several days before the window, at a keyboard, writing things
+  down. Everything below has bitten me at least once when I skipped it.
+</p>
+<ul>
+  <li><strong>Disk space on the destination.</strong> Not "roughly enough" — measured, with 25% headroom for the transfer overhead and the delta sync.</li>
+  <li><strong>PHP versions in use per account.</strong> A site running PHP 7.4 that lands on a server whose oldest handler is 8.2 is a white screen, not a migration.</li>
+  <li><strong>Custom software outside the account.</strong> Cron jobs referencing absolute paths, custom Apache includes, manually-installed PECL modules, anything in <code>/opt</code>.</li>
+  <li><strong>Databases the panel doesn't know about.</strong> Anything created directly in MySQL rather than through cPanel won't come with the account.</li>
+  <li><strong>Third-party DNS.</strong> If the customer's nameservers are at Cloudflare or their registrar, you can't cut over by editing a zone locally. Find this out now.</li>
+  <li><strong>Mail volume and mailbox sizes.</strong> A 60 GB mailbox will dominate your transfer time. Plan for it separately.</li>
+  <li><strong>Who to tell.</strong> Which customers need notice, and who signs off on the window.</li>
+</ul>
+
+<p>A quick inventory pass on the source server:</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>source server — inventory</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Account list with disk usage, largest first
+whmapi1 listaccts | grep -E 'user:|diskused:'
+
+# PHP version per domain (MultiPHP)
+whmapi1 php_get_vhost_versions | grep -E 'vhost:|version:'
+
+# Anything scheduled outside the panel
+for u in $(ls /var/cpanel/users); do
+  echo "--- $u"; crontab -l -u "$u" 2>/dev/null
+done
+
+# Databases MySQL knows about vs. cPanel knows about
+mysql -e "SHOW DATABASES;" | sort > /tmp/db-mysql.txt
+whmapi1 list_mysql_databases_and_users | grep -oP '(?<=database: ).*' | sort > /tmp/db-panel.txt
+comm -23 /tmp/db-mysql.txt /tmp/db-panel.txt   # orphans live here</code></pre>
+</div>
+
+<p>
+  That last command has saved me more than once. Orphaned databases are invisible to
+  the account transfer tool and very visible to the customer whose application stops
+  connecting.
+</p>
+
+<h2 id="ttl">2. Drop your TTLs — days early</h2>
+<p>
+  This is the single step that separates a smooth cutover from a 48-hour tail of
+  "some of my users see the old site". DNS caches for as long as the TTL says. If your
+  A record has a 24-hour TTL when you cut over, some resolvers will keep sending
+  traffic to the old server for the next 24 hours.
+</p>
+<p>
+  So: <strong>at least 48 hours before the window</strong>, drop the TTL on every record you're
+  going to change to 300 seconds. Resolvers need to expire the <em>old</em> long TTL before
+  they'll honour the new short one — which is exactly why you can't do this on the day.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>verify the TTL actually dropped</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Ask the authoritative nameserver directly, not your local resolver
+dig +noall +answer @ns1.example.com example.com A
+
+# And check what the world currently sees
+dig +noall +answer example.com A @8.8.8.8
+dig +noall +answer example.com A @1.1.1.1</code></pre>
+</div>
+
+<div class="callout callout--danger">
+  <span class="callout__ico" aria-hidden="true">⚠️</span>
+  <p><strong>Don't forget the MX and mail records.</strong> People obsess over the A record and then wonder why mail kept arriving at the old server for a day. TTLs on MX, autodiscover, webmail and any SPF/DKIM TXT records need the same treatment.</p>
+</div>
+
+<h2 id="first-sync">3. The first full sync (no downtime yet)</h2>
+<p>
+  Now copy everything while both servers are live. Nothing is cut over; this pass just
+  moves the bulk of the data so that the window itself only has to move a small delta.
+</p>
+<p>
+  For cPanel-to-cPanel, the transfer tool handles account structure, DNS zones, mail and
+  databases correctly and I'd always prefer it to hand-rolled <code>rsync</code>:
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>destination server — bulk transfer</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Pull a single account from the source (run on the DESTINATION)
+/scripts/pkgacct --skiphomedir username        # on source, if staging manually
+
+# Preferred: WHM Transfer Tool, scriptable via API
+whmapi1 create_transfer_session \
+  transfer_threads=2 restore_threads=2 \
+  sessionid_prefix=migration_batch1</code></pre>
+</div>
+
+<p>
+  For non-panel servers, or for the delta pass, plain <code>rsync</code> is the tool. The flags
+  matter more than people think:
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>rsync — full pass</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>rsync -aHAX --numeric-ids --delete \
+      --exclude='.cagefs/' --exclude='tmp/' \
+      --info=progress2 \
+      -e "ssh -o StrictHostKeyChecking=no" \
+      root@source:/home/username/ /home/username/</code></pre>
+</div>
+
+<ul>
+  <li><code>-a</code> preserves permissions, times, symlinks and ownership — the baseline.</li>
+  <li><code>-H</code> preserves hard links. Mail stores use them heavily; without this your disk usage can balloon.</li>
+  <li><code>-A -X</code> keep ACLs and extended attributes. SELinux contexts live in xattrs.</li>
+  <li><code>--numeric-ids</code> stops UID remapping surprises when the two servers disagree about user numbering.</li>
+  <li><code>--delete</code> makes the destination a true mirror — essential on the delta pass, dangerous if you point it at the wrong path. Check twice.</li>
+</ul>
+
+<h2 id="verify-before">4. Verify <em>before</em> you cut over</h2>
+<p>
+  The destination is now serving the sites — it just isn't receiving traffic yet. This is
+  the best possible time to find problems, because nothing is broken for anyone. Test by
+  overriding DNS locally rather than changing it publicly.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>test the new server without touching DNS</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Force a single request at the new IP with the correct Host header
+curl -sS -I --resolve example.com:443:203.0.113.45 https://example.com/
+
+# Or add it to your local hosts file and browse normally
+echo "203.0.113.45 example.com www.example.com" | sudo tee -a /etc/hosts</code></pre>
+</div>
+
+<p>Walk a written checklist per site. Mine is roughly:</p>
+<ol>
+  <li>Home page returns 200 and looks right (not a default page, not a database error).</li>
+  <li>A dynamic page that hits the database renders — the CMS admin login is a good one.</li>
+  <li>File upload works: permissions and ownership survived the copy.</li>
+  <li>HTTPS is valid — certificate present, correct hostname, not self-signed.</li>
+  <li>Cron jobs exist and their paths still resolve on the new box.</li>
+  <li>Mail: send in, send out, and confirm the mailbox count matches the source.</li>
+  <li>Redirects and rewrite rules still fire (<code>.htaccess</code> arrived and Apache reads it).</li>
+</ol>
+
+<h2 id="window">5. The window: delta sync and cutover</h2>
+<p>
+  Now the short part. With the bulk already copied, the actual window is usually minutes,
+  not hours.
+</p>
+<ol>
+  <li><strong>Put the source into a quiet state.</strong> For a truly consistent database copy you want writes stopped — a short maintenance page on the source, or at minimum stopping cron.</li>
+  <li><strong>Run the delta sync.</strong> Same rsync command; it now only moves what changed since the full pass.</li>
+  <li><strong>Re-dump the databases.</strong> These change constantly and are the one thing you should always take fresh.</li>
+  <li><strong>Cut the DNS.</strong> Change the A and MX records to the new IP. With a 300-second TTL, the world follows within about five minutes.</li>
+  <li><strong>Leave the old server running.</strong> Do not power it off. It's your rollback, and it catches stragglers still resolving to the old IP.</li>
+</ol>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>fresh database dump and load</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># On source — consistent dump for InnoDB without locking everything
+mysqldump --single-transaction --routines --triggers --events \
+          --databases user_wp | gzip > /tmp/user_wp.sql.gz
+
+# Transfer and load on destination
+scp /tmp/user_wp.sql.gz root@dest:/tmp/
+ssh root@dest 'gunzip < /tmp/user_wp.sql.gz | mysql'</code></pre>
+</div>
+
+<div class="callout callout--ok">
+  <span class="callout__ico" aria-hidden="true">✅</span>
+  <p><strong>Configure mail forwarding on the old server.</strong> For the next few days, any mail that still arrives at the old IP should be relayed to the new one. Otherwise you'll silently lose messages from every sender whose resolver cached the old MX.</p>
+</div>
+
+<h2 id="after">6. The days after</h2>
+<p>
+  The migration isn't finished when DNS propagates. Keep the old server running for at
+  least 72 hours — a week if the customer is nervous — and watch:
+</p>
+<ul>
+  <li><strong>Traffic on the old server.</strong> When its access logs go quiet, propagation is genuinely complete. That's your signal, not a propagation-checker website.</li>
+  <li><strong>Error logs on the new one.</strong> Missing PHP extensions and path problems show up here first, often before a customer notices.</li>
+  <li><strong>Mail queue.</strong> A growing queue on the new server means a reputation or configuration problem with the new IP.</li>
+  <li><strong>The new IP's reputation.</strong> A fresh IP has no sending history. Check it isn't already on a blacklist from a previous tenant.</li>
+</ul>
+<p>
+  Only when the old server has been silent for a full day do I raise TTLs back to normal
+  and schedule decommissioning — and even then, I take a final image first.
+</p>
+
+<h2 id="wrong">What actually goes wrong</h2>
+<p>Five years of doing these, and it's almost always one of these:</p>
+<ul>
+  <li><strong>Hard-coded IPs and paths</strong> in application config. Search the codebase for the old IP before you cut over.</li>
+  <li><strong>The forgotten cron job</strong> that ran on the old server, kept running after cutover, and wrote to a database nobody was reading any more.</li>
+  <li><strong>SSL not reissued.</strong> Let's Encrypt validates over HTTP — if it runs before DNS points at the new box, it fails. Issue after cutover, or use DNS validation.</li>
+  <li><strong>The mailbox nobody mentioned.</strong> Almost always the one belonging to the person who signs off on the migration.</li>
+  <li><strong>PHP version drift.</strong> The new server's "default" is newer than the site expects, and a deprecation warning becomes a fatal error.</li>
+</ul>
+
+<hr>
+
+<p>
+  None of this is clever. It's just written down, done in order, and never skipped
+  because the migration is "only a small one". The small ones are where people get
+  casual, and casual is where data goes missing.
+</p>
+
+    </div>
+  </div>
+</article>
+
+<div class="wrap">
+  <div class="post-footer">
+    <div class="author-box reveal">
+      <span class="av" aria-hidden="true">AJ</span>
+      <div>
+        <h4>Alan Joy</h4>
+        <p>
+          Linux server administrator working L2/L3 managed hosting, security hardening,
+          incident response and migrations. Most of these articles started as notes from
+          a ticket I didn't want to solve twice.
+          <a href="../about.html">More about me →</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="post-nav">
+      <a href="../blog.html" class="btn btn--ghost btn--sm">← All articles</a>
+      <a href="../contact.html" class="btn btn--primary btn--sm">Ask me about this</a>
+    </div>
+  </div>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Zero-Downtime cPanel Migration: A Field-Tested Runbook",
+  "description": "The complete runbook for migrating live cPanel accounts between servers without customer-visible downtime: pre-flight audit, TTL staging, delta syncs, verification and rollback.",
+  "datePublished": "2026-07-18",
+  "author": { "@type": "Person", "name": "Alan Joy", "url": "https://careersalanjantony-bit.github.io/nexusflow/about.html" },
+  "publisher": { "@type": "Person", "name": "Alan Joy" },
+  "mainEntityOfPage": "https://careersalanjantony-bit.github.io/nexusflow/posts/zero-downtime-cpanel-migration.html",
+  "keywords": "Migrations, linux, server administration, web hosting"
+}
+</script>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a href="../index.html" class="brand">
+          <span class="brand__mark" aria-hidden="true">AJ</span>
+          <span>alanjoy<span class="brand__dot">.</span>sh</span>
+        </a>
+        <p>Linux server administration, L2/L3 managed hosting support, security hardening and zero-downtime migrations.</p>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+          </a>
+          <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+          </a>
+          <a href="mailto:careers.alanjantony@gmail.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../about.html">About</a></li>
+          <li><a href="../services.html">Services</a></li>
+          <li><a href="../projects.html">Projects</a></li>
+          <li><a href="../blog.html">Blog</a></li>
+          <li><a href="../contact.html">Contact</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Writing</h4>
+        <ul>
+          <li><a href="../posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
+          <li><a href="../posts/linux-server-hardening-checklist.html">Server hardening</a></li>
+          <li><a href="../posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="../posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
+          <li><a href="../posts/detecting-a-compromised-server.html">Incident response</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:careers.alanjantony@gmail.com">careers.alanjantony<br>@gmail.com</a></li>
+          <li><a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener">LinkedIn profile</a></li>
+          <li><a href="../contact.html">Start a project</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p>&copy; <span data-year>2026</span> Alan Joy. All rights reserved.</p>
+      <p>Built by hand — HTML, CSS &amp; vanilla JS. No trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="../assets/js/main.js"></script>
+
+</body>
+</html>

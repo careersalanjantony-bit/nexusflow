@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Alan Joy">
+<meta name="theme-color" content="#05070d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/main.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
+<title>Diagnosing High Server Load Without Guessing — Alan Joy</title>
+<meta name="description" content="A repeatable triage method for high load average on Linux: distinguish CPU, I/O and memory pressure, find the offending process, and fix the cause instead of rebooting.">
+<link rel="canonical" href="https://careersalanjantony-bit.github.io/nexusflow/posts/diagnosing-high-server-load.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Diagnosing High Server Load Without Guessing — Alan Joy">
+<meta property="og:description" content="A repeatable triage method for high load average on Linux: distinguish CPU, I/O and memory pressure, find the offending process, and fix the cause instead of rebooting.">
+<meta property="og:url" content="https://careersalanjantony-bit.github.io/nexusflow/posts/diagnosing-high-server-load.html">
+<meta property="og:site_name" content="Alan Joy">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Diagnosing High Server Load Without Guessing — Alan Joy">
+<meta name="twitter:description" content="A repeatable triage method for high load average on Linux: distinguish CPU, I/O and memory pressure, find the offending process, and fix the cause instead of rebooting.">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}.bar__fill{width:var(--fallback-pct,100%)!important}</style></noscript>
+</head>
+<body data-page="blog" id="top">
+<div class="progress-bar" id="progress"></div>
+
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="../index.html" class="brand" aria-label="Alan Joy — home">
+      <span class="brand__mark" aria-hidden="true">AJ</span>
+      <span>alanjoy<span class="brand__dot">.</span>sh</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html" data-nav="home">Home</a>
+      <a href="../about.html" data-nav="about">About</a>
+      <a href="../services.html" data-nav="services">Services</a>
+      <a href="../projects.html" data-nav="projects">Projects</a>
+      <a href="../blog.html" data-nav="blog">Blog</a>
+      <a href="../contact.html" data-nav="contact">Contact</a>
+    </nav>
+
+    <div class="nav__actions">
+      <a href="../contact.html" class="btn btn--primary btn--sm">Hire me</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="../index.html" data-nav="home">Home</a>
+  <a href="../about.html" data-nav="about">About</a>
+  <a href="../services.html" data-nav="services">Services</a>
+  <a href="../projects.html" data-nav="projects">Projects</a>
+  <a href="../blog.html" data-nav="blog">Blog</a>
+  <a href="../contact.html" data-nav="contact">Contact</a>
+  <a href="../contact.html" class="btn btn--primary">Hire me</a>
+</div>
+
+<main id="main">
+<section class="post-hero">
+  <div class="wrap">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span class="sep">/</span><a href="../blog.html">Blog</a><span class="sep">/</span><span>Troubleshooting</span>
+    </nav>
+    <h1 class="post-title">Diagnosing High Server Load Without Guessing</h1>
+    <div class="post-meta">
+      <span class="tag">Troubleshooting</span>
+      <time datetime="2026-05-21">21 May 2026</time>
+      <span>· 11 min read</span>
+      <span>· by Alan Joy</span>
+    </div>
+  </div>
+</section>
+
+<article class="section" style="padding-top: 0;">
+  <div class="wrap">
+    <div class="article">
+<p>
+  "The server is slow." It's the vaguest ticket you'll ever get, and the temptation is
+  always the same: restart something and see if it helps. Sometimes it does, which is the
+  worst outcome — because now you've destroyed the evidence and learned nothing.
+</p>
+<p>
+  Here's the triage order I use. It's deliberately mechanical, because the whole point is
+  to stop guessing.
+</p>
+
+<h2 id="load-average">Step 0: understand what load average actually means</h2>
+<p>
+  Load average is the number of processes that are either running or <em>waiting to run</em> —
+  and on Linux, uniquely, it also counts processes blocked on uninterruptible I/O. That
+  last part is why load can hit 60 on a machine whose CPUs are almost idle.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>first look</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>uptime
+# 14:22:01 up 91 days,  load average: 42.15, 38.02, 21.77
+
+nproc
+# 8</code></pre>
+</div>
+
+<p>
+  Compare load to core count. Load 8 on 8 cores is fully utilised but coping. Load 42 on 8
+  cores means a deep queue. And the three numbers are 1, 5 and 15-minute averages — if the
+  first is much higher than the third, it's getting worse right now; the reverse means
+  you're looking at the tail of something that has already passed.
+</p>
+
+<div class="callout">
+  <span class="callout__ico" aria-hidden="true">💡</span>
+  <p><strong>High load is a symptom with three possible causes: CPU, I/O, or memory pressure.</strong> Everything below is about telling them apart. Don't touch anything until you know which one you have.</p>
+</div>
+
+<h2 id="which">Step 1: CPU, I/O, or memory?</h2>
+<p>
+  One command answers this. Run <code>top</code> and read the CPU line — not the process list,
+  the summary line.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>top — the line that matters</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>%Cpu(s):  4.2 us,  1.1 sy,  0.0 ni, 12.3 id, 81.9 wa,  0.0 hi,  0.5 si</code></pre>
+</div>
+
+<div class="table-wrap"><table>
+  <thead>
+    <tr><th>Field</th><th>Meaning</th><th>If it's high</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>us</code></td><td>User CPU</td><td>Application code is genuinely busy — PHP, a compile, a runaway loop</td></tr>
+    <tr><td><code>sy</code></td><td>System CPU</td><td>Kernel work — often huge process counts or network interrupt load</td></tr>
+    <tr><td><code>wa</code></td><td>I/O wait</td><td>CPUs are idle, waiting on disk. <strong>This is a storage problem</strong></td></tr>
+    <tr><td><code>si</code></td><td>Soft IRQ</td><td>Network interrupt pressure — often a flood or DDoS</td></tr>
+    <tr><td><code>st</code></td><td>Steal</td><td>Your hypervisor is giving CPU to someone else. Not your fault, not your fix</td></tr>
+  </tbody>
+</table></div>
+
+<p>In the example above, <code>wa</code> is 81.9%. That's not a CPU problem — that's a disk problem, and no amount of PHP tuning will help.</p>
+
+<h2 id="cpu">Step 2a: it's CPU</h2>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>find the consumer</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Top CPU consumers, cleanly
+ps -eo pid,ppid,user,pcpu,pmem,etime,cmd --sort=-pcpu | head -20
+
+# Per-core breakdown — one pegged core is a single-threaded bottleneck
+mpstat -P ALL 2 5
+
+# Which user, on a shared server
+ps -eo user,pcpu --no-headers | awk '{c[$1]+=$2} END {for (u in c) print c[u], u}' | sort -rn | head</code></pre>
+</div>
+
+<p>On a hosting server, the usual suspects in order of likelihood:</p>
+<ul>
+  <li><strong>One site under a bot crawl.</strong> Not malicious, just an aggressive crawler hitting uncached dynamic pages. Check access logs by request rate per vhost.</li>
+  <li><strong>A PHP process stuck in a loop.</strong> Look for a process with hours of CPU time. <code>strace -p PID</code> tells you what it's actually doing.</li>
+  <li><strong>An XML-RPC or login brute force.</strong> Cheap for the attacker, expensive for you — every attempt is a full PHP bootstrap.</li>
+  <li><strong>A cryptominer.</strong> Sustained 100% CPU from an oddly-named process running as a web user. This is a compromise, not a performance ticket — switch tracks.</li>
+</ul>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>request rate per site, last 10k lines</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Which vhost is getting hammered
+tail -10000 /var/log/apache2/access_log | awk '{print $1}' | sort | uniq -c | sort -rn | head
+
+# Requests per minute, to see if it's a burst or sustained
+awk '{print substr($4,2,17)}' /var/log/apache2/access_log | uniq -c | tail -20</code></pre>
+</div>
+
+<h2 id="io">Step 2b: it's I/O</h2>
+<p>High <code>wa</code> means processes are queued on storage. Find out which device and which process.</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>storage triage</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Per-device utilisation. %util near 100 = saturated device
+iostat -xz 2 5
+
+# Which processes are doing the I/O
+iotop -oPa
+
+# Processes currently in uninterruptible sleep (blocked on I/O)
+ps -eo state,pid,user,cmd | awk '$1 ~ /D/'</code></pre>
+</div>
+
+<p>In <code>iostat</code>, the columns that matter:</p>
+<ul>
+  <li><code>%util</code> — how busy the device is. Sustained near 100% means saturated.</li>
+  <li><code>await</code> — average time a request waits, in ms. On SSD, anything above ~10ms is suspicious; on spinning disk, above ~50ms.</li>
+  <li><code>aqu-sz</code> — average queue depth. A consistently deep queue means requests are backing up faster than the device drains them.</li>
+</ul>
+
+<p>Common causes on a hosting box, most frequent first:</p>
+<ul>
+  <li><strong>An unindexed database query</strong> doing full table scans on a large table. This is the number one cause I see, by a wide margin.</li>
+  <li><strong>A backup job running in business hours.</strong> Check cron before you go looking for anything cleverer.</li>
+  <li><strong>Swapping.</strong> If memory is exhausted, the disk activity is a <em>symptom</em> of the memory problem — jump to the next section.</li>
+  <li><strong>A full or nearly-full disk.</strong> Filesystems slow down badly above ~90% as allocation gets harder.</li>
+  <li><strong>A failing disk.</strong> Check <code>dmesg</code> for I/O errors and SMART for reallocated sectors before assuming it's a workload problem.</li>
+</ul>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>rule out the boring causes first</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>df -h                       # full disk?
+df -i                       # out of inodes? (many small files)
+dmesg -T | grep -iE 'i/o error|ata|nvme'
+smartctl -H /dev/sda</code></pre>
+</div>
+
+<h2 id="memory">Step 2c: it's memory</h2>
+<p>
+  Memory pressure is the sneakiest of the three, because it disguises itself as an I/O
+  problem: the machine starts swapping, disk saturates, and <code>wa</code> goes through the roof.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>memory triage</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>free -h
+
+# si/so columns: if these are non-zero and sustained, you're swapping
+vmstat 2 5
+
+# Biggest RSS consumers
+ps -eo pid,user,rss,cmd --sort=-rss | head -15
+
+# Has the OOM killer been active?
+dmesg -T | grep -i 'killed process'</code></pre>
+</div>
+
+<div class="callout">
+  <span class="callout__ico" aria-hidden="true">💡</span>
+  <p><strong>Ignore the "free" number in <code>free -h</code>.</strong> Linux deliberately uses spare RAM for page cache. The column to read is <strong>available</strong> — that's memory reclaimable without swapping. Low available is the real warning sign.</p>
+</div>
+
+<p>On a web server, memory exhaustion is nearly always one of:</p>
+<ul>
+  <li><strong>PHP-FPM <code>pm.max_children</code> set too high</strong> for the RAM available. Each child can hold tens of megabytes; multiply it out and check the total actually fits.</li>
+  <li><strong>MySQL buffer pool oversized</strong> relative to the box — a config copied from a machine with more RAM.</li>
+  <li><strong>A genuine application leak</strong> — one process whose RSS grows steadily over days.</li>
+</ul>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>does your PHP-FPM config actually fit in RAM?</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code># Average RSS per php-fpm child, in MB
+ps -ylC php-fpm --sort:rss | awk '{s+=$8; n++} END {print s/n/1024 " MB avg over " n-1 " procs"}'
+
+# Multiply that by pm.max_children and compare to free memory.
+# If it exceeds available RAM, you are one traffic spike from the OOM killer.</code></pre>
+</div>
+
+<h2 id="fix">Step 3: fix the cause, not the symptom</h2>
+<p>Now — and only now — act. Match the fix to what you actually found:</p>
+
+<div class="table-wrap"><table>
+  <thead>
+    <tr><th>Finding</th><th>Right fix</th><th>Wrong fix</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Unindexed slow query</td><td>Add the index; check the slow query log for others</td><td>Raise MySQL memory limits</td></tr>
+    <tr><td>Bot crawl on dynamic pages</td><td>Cache the pages; rate-limit the crawler</td><td>Add more PHP workers</td></tr>
+    <tr><td>PHP-FPM oversubscribed</td><td>Lower <code>max_children</code> to what RAM supports</td><td>Add swap and hope</td></tr>
+    <tr><td>Backup in business hours</td><td>Reschedule; add <code>ionice</code></td><td>Disable the backup</td></tr>
+    <tr><td>Cryptominer</td><td>Full incident response</td><td>Kill the process and close the ticket</td></tr>
+    <tr><td>High steal time</td><td>Escalate to the provider; consider migrating</td><td>Tune anything on your side</td></tr>
+  </tbody>
+</table></div>
+
+<div class="callout callout--danger">
+  <span class="callout__ico" aria-hidden="true">⚠️</span>
+  <p><strong>Resist the reboot.</strong> A reboot clears the symptom, destroys the running state you needed to diagnose it, and guarantees the ticket returns. If you must reboot to restore service, capture <code>ps aux</code>, <code>top -bn1</code>, <code>iostat -xz</code> and the relevant logs to a file <em>first</em>. Five seconds of capture saves the whole investigation.</p>
+</div>
+
+<h2 id="afterwards">Step 4: make the next one easier</h2>
+<p>The incident isn't over when load drops. Two things stop it recurring:</p>
+<ul>
+  <li><strong>An alert on the actual leading indicator</strong> you just discovered — I/O wait percentage, available memory, slow query count. Not just load average, which told you nothing about the cause.</li>
+  <li><strong>A note in the runbook.</strong> "High <code>wa</code> on web-07 is usually the reporting query on account X" is the kind of institutional knowledge that turns a two-hour investigation into a two-minute one.</li>
+</ul>
+
+<hr>
+
+<p>
+  The whole method fits on an index card: <em>read the CPU summary line, decide whether it's
+  CPU, I/O or memory, then find the specific process.</em> Three commands, in order, before
+  you change anything. It's slower than restarting Apache, and it's the only approach that
+  stops the ticket coming back.
+</p>
+
+    </div>
+  </div>
+</article>
+
+<div class="wrap">
+  <div class="post-footer">
+    <div class="author-box reveal">
+      <span class="av" aria-hidden="true">AJ</span>
+      <div>
+        <h4>Alan Joy</h4>
+        <p>
+          Linux server administrator working L2/L3 managed hosting, security hardening,
+          incident response and migrations. Most of these articles started as notes from
+          a ticket I didn't want to solve twice.
+          <a href="../about.html">More about me →</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="post-nav">
+      <a href="../blog.html" class="btn btn--ghost btn--sm">← All articles</a>
+      <a href="../contact.html" class="btn btn--primary btn--sm">Ask me about this</a>
+    </div>
+  </div>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Diagnosing High Server Load Without Guessing",
+  "description": "A repeatable triage method for high load average on Linux: distinguish CPU, I/O and memory pressure, find the offending process, and fix the cause instead of rebooting.",
+  "datePublished": "2026-05-21",
+  "author": { "@type": "Person", "name": "Alan Joy", "url": "https://careersalanjantony-bit.github.io/nexusflow/about.html" },
+  "publisher": { "@type": "Person", "name": "Alan Joy" },
+  "mainEntityOfPage": "https://careersalanjantony-bit.github.io/nexusflow/posts/diagnosing-high-server-load.html",
+  "keywords": "Troubleshooting, linux, server administration, web hosting"
+}
+</script>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a href="../index.html" class="brand">
+          <span class="brand__mark" aria-hidden="true">AJ</span>
+          <span>alanjoy<span class="brand__dot">.</span>sh</span>
+        </a>
+        <p>Linux server administration, L2/L3 managed hosting support, security hardening and zero-downtime migrations.</p>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+          </a>
+          <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+          </a>
+          <a href="mailto:careers.alanjantony@gmail.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../about.html">About</a></li>
+          <li><a href="../services.html">Services</a></li>
+          <li><a href="../projects.html">Projects</a></li>
+          <li><a href="../blog.html">Blog</a></li>
+          <li><a href="../contact.html">Contact</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Writing</h4>
+        <ul>
+          <li><a href="../posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
+          <li><a href="../posts/linux-server-hardening-checklist.html">Server hardening</a></li>
+          <li><a href="../posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="../posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
+          <li><a href="../posts/detecting-a-compromised-server.html">Incident response</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:careers.alanjantony@gmail.com">careers.alanjantony<br>@gmail.com</a></li>
+          <li><a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener">LinkedIn profile</a></li>
+          <li><a href="../contact.html">Start a project</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p>&copy; <span data-year>2026</span> Alan Joy. All rights reserved.</p>
+      <p>Built by hand — HTML, CSS &amp; vanilla JS. No trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="../assets/js/main.js"></script>
+
+</body>
+</html>

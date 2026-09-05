@@ -1,276 +1,611 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusFlow - The Future of Team Collaboration</title>
-    <link href="templatemo-nexus-style.css" rel="stylesheet">
-<!--
-
-TemplateMo 594 nexus flow
-
-https://templatemo.com/tm-594-nexus-flow
-
--->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Alan Joy">
+<meta name="theme-color" content="#05070d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
+<title>Alan Joy — Linux Server Administrator | Hosting, Security &amp; Migrations</title>
+<meta name="description" content="Alan Joy is a Linux server administrator specialising in L2/L3 managed hosting support, security hardening, incident response and zero-downtime server migrations.">
+<link rel="canonical" href="https://careersalanjantony-bit.github.io/nexusflow/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Alan Joy — Linux Server Administrator | Hosting, Security &amp; Migrations">
+<meta property="og:description" content="Alan Joy is a Linux server administrator specialising in L2/L3 managed hosting support, security hardening, incident response and zero-downtime server migrations.">
+<meta property="og:url" content="https://careersalanjantony-bit.github.io/nexusflow/">
+<meta property="og:site_name" content="Alan Joy">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Alan Joy — Linux Server Administrator | Hosting, Security &amp; Migrations">
+<meta name="twitter:description" content="Alan Joy is a Linux server administrator specialising in L2/L3 managed hosting support, security hardening, incident response and zero-downtime server migrations.">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}.bar__fill{width:var(--fallback-pct,100%)!important}</style></noscript>
 </head>
-<body id="top">
-    <!-- Enhanced Background Elements -->
-    <div class="cyber-bg">
-        <div class="cyber-gradient"></div>
-        <div class="matrix-rain" id="matrixRain"></div>
-    </div>
-    
-    <div class="particles" id="particlesContainer"></div>
-    
-    <div class="data-streams" id="dataStreams"></div>
-    
-    <div class="orb orb1"></div>
-    <div class="orb orb2"></div>
-    <div class="orb orb3"></div>
-    
-    <div class="grid-overlay">
-        <div class="grid-lines"></div>
-        <div class="grid-glow"></div>
-    </div>
-    
-    <div class="scanlines"></div>
-    <div class="noise-overlay"></div>
-    
-    <!-- Navigation -->
-    <nav>
-        <div class="nav-container">
-            <a href="#top" class="logo">NexusFlow</a>
-            <ul class="nav-links">
-                <li><a href="#features">Features</a></li>
-                <li><a href="#pricing">Pricing</a></li>
-                <li><a href="#stats">Stats</a></li>
-                <li><a href="#contact">Contact</a></li>
-            </ul>
-            <div class="nav-bottom">
-                <a href="#" class="cyber-button">Access Terminal</a>
-            </div>
-            <button class="mobile-menu-button" id="mobileMenuBtn">
-                <div class="hamburger">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </button>
-        </div>
+<body data-page="home" id="top">
+<div class="progress-bar" id="progress"></div>
+
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="index.html" class="brand" aria-label="Alan Joy — home">
+      <span class="brand__mark" aria-hidden="true">AJ</span>
+      <span>alanjoy<span class="brand__dot">.</span>sh</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="index.html" data-nav="home">Home</a>
+      <a href="about.html" data-nav="about">About</a>
+      <a href="services.html" data-nav="services">Services</a>
+      <a href="projects.html" data-nav="projects">Projects</a>
+      <a href="blog.html" data-nav="blog">Blog</a>
+      <a href="contact.html" data-nav="contact">Contact</a>
     </nav>
 
-    <!-- Mobile Menu -->
-    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
-    <div class="mobile-menu" id="mobileMenu">
-        <div class="mobile-menu-header">
-            <a href="#top" class="mobile-menu-logo">NexusFlow</a>
-            <button class="mobile-menu-close" id="mobileMenuClose">✕</button>
+    <div class="nav__actions">
+      <a href="contact.html" class="btn btn--primary btn--sm">Hire me</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="index.html" data-nav="home">Home</a>
+  <a href="about.html" data-nav="about">About</a>
+  <a href="services.html" data-nav="services">Services</a>
+  <a href="projects.html" data-nav="projects">Projects</a>
+  <a href="blog.html" data-nav="blog">Blog</a>
+  <a href="contact.html" data-nav="contact">Contact</a>
+  <a href="contact.html" class="btn btn--primary">Hire me</a>
+</div>
+
+<main id="main">
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero__grid">
+      <div>
+        <span class="hero__status"><span class="hero__pulse"></span> Available for new engagements</span>
+
+        <h1 class="hero__name">Alan Joy<span style="color: var(--cyan);">.</span></h1>
+
+        <p class="hero__role">
+          <span class="typed" data-typed='["Linux Server Administrator","L2/L3 Managed Hosting Support","Security Hardening &amp; Incident Response","Zero-Downtime Migrations"]'>Linux Server Administrator</span><span class="caret" aria-hidden="true"></span>
+        </p>
+
+        <p class="hero__lead">
+          I keep production Linux infrastructure fast, hardened and online. From
+          escalated hosting tickets and post-breach cleanups to full server
+          migrations with no customer-visible downtime — I work the layer most
+          people only notice when it breaks.
+        </p>
+
+        <div class="hero__cta">
+          <a href="contact.html" class="btn btn--primary">
+            Let's talk
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+          <a href="projects.html" class="btn btn--ghost">View my work</a>
         </div>
-        <div class="mobile-menu-cta">
-            <a href="#" class="cyber-button">Access Terminal</a>
+
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+          </a>
+          <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+          </a>
+          <a href="mailto:careers.alanjantony@gmail.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          </a>
         </div>
-        <nav class="mobile-menu-nav">
-            <ul>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#pricing">Pricing</a></li>
-                <li><a href="#stats">Stats</a></li>
-                <li><a href="#contact">Contact</a></li>
-            </ul>
-        </nav>
+      </div>
+
+      <!-- Terminal card -->
+      <div class="terminal" aria-label="Terminal showing a server status summary" role="img">
+        <div class="terminal__bar">
+          <span class="terminal__dot terminal__dot--r"></span>
+          <span class="terminal__dot terminal__dot--y"></span>
+          <span class="terminal__dot terminal__dot--g"></span>
+          <span class="terminal__title">alan@prod-edge-01: ~</span>
+        </div>
+        <div class="terminal__body">
+          <p><span class="t-prompt">alan@prod-edge-01:~$</span> <span class="t-cmd">whoami --verbose</span></p>
+          <p><span class="t-key">name</span>      <span class="t-val">Alan Joy</span>
+<span class="t-key">role</span>      <span class="t-val">Linux Server Administrator</span>
+<span class="t-key">tier</span>      <span class="t-val">L2 / L3 escalation</span>
+<span class="t-key">focus</span>     <span class="t-val">hardening · IR · migrations</span>
+<span class="t-key">stack</span>     <span class="t-val">RHEL · Ubuntu · cPanel · Plesk</span></p>
+          <p>&nbsp;</p>
+          <p><span class="t-prompt">alan@prod-edge-01:~$</span> <span class="t-cmd">systemctl status availability</span></p>
+          <p><span class="t-ok">●</span> <span class="t-out">availability.service — customer-facing uptime</span>
+   <span class="t-key">Loaded:</span> <span class="t-out">loaded (/etc/sla/99.99.conf; enabled)</span>
+   <span class="t-key">Active:</span> <span class="t-ok">active (running)</span>
+   <span class="t-key">Memory:</span> <span class="t-out">calm. Load average: 0.14</span></p>
+          <p>&nbsp;</p>
+          <p><span class="t-prompt">alan@prod-edge-01:~$</span> <span class="t-cmd">tail -f /var/log/inbox</span></p>
+          <p><span class="t-out">[ok] awaiting your message</span> <span class="caret" aria-hidden="true"></span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section class="section section--tight">
+  <div class="wrap">
+    <div class="stats reveal">
+      <div class="stat">
+        <span class="stat__num" data-count="5" data-suffix="+">0</span>
+        <span class="stat__label">Years in production</span>
+      </div>
+      <div class="stat">
+        <span class="stat__num" data-count="1200" data-suffix="+">0</span>
+        <span class="stat__label">Servers administered</span>
+      </div>
+      <div class="stat">
+        <span class="stat__num" data-count="500" data-suffix="+">0</span>
+        <span class="stat__label">Migrations completed</span>
+      </div>
+      <div class="stat">
+        <span class="stat__num" data-count="99.99" data-decimals="2" data-suffix="%">0</span>
+        <span class="stat__label">Uptime maintained</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ABOUT ============ -->
+<section class="section" id="about">
+  <div class="wrap">
+    <div class="about">
+      <div class="about__portrait reveal">
+        <div class="avatar" aria-hidden="true">AJ</div>
+        <h3>Alan Joy</h3>
+        <p class="role">Linux Server Administrator</p>
+        <ul class="meta-list">
+          <li><span class="k">Specialism</span> <span class="v">Managed hosting infra</span></li>
+          <li><span class="k">Tier</span> <span class="v">L2 / L3 escalation</span></li>
+          <li><span class="k">Availability</span> <span class="v">Open to work</span></li>
+          <li><span class="k">Working hours</span> <span class="v">24/7 on-call capable</span></li>
+          <li><span class="k">Languages</span> <span class="v">English, Malayalam</span></li>
+        </ul>
+      </div>
+
+      <div class="about__body reveal" data-delay="1">
+        <span class="eyebrow">About me</span>
+        <h2 class="section-title">The engineer they call when the ticket has already been escalated twice.</h2>
+
+        <p>
+          I'm a <strong>Linux server administrator</strong> working the managed-hosting
+          side of infrastructure — the place where a single misconfigured
+          <code>php-fpm</code> pool, an expired certificate or a compromised WordPress
+          plugin turns into a customer outage within minutes.
+        </p>
+        <p>
+          Most of my day is spent on <strong>L2 and L3 escalations</strong>: reproducing the
+          fault, reading the logs properly instead of guessing, applying a fix that
+          holds, and writing the RCA so the same ticket doesn't come back next
+          month. The rest is planned work — <strong>security hardening</strong>,
+          <strong>incident response</strong> and <strong>server migrations</strong> that customers
+          shouldn't be able to feel.
+        </p>
+        <p>
+          I care about two things above all: <strong>not losing data</strong>, and
+          <strong>not surprising the customer</strong>. Every migration gets a rollback plan
+          before it gets a start time. Every hardening change gets tested where it
+          can't take a live site down. That discipline is why I can put numbers like
+          the ones above on a page.
+        </p>
+
+        <div class="pill-row">
+          <span class="pill">RHEL / Rocky / AlmaLinux</span>
+          <span class="pill">Ubuntu / Debian</span>
+          <span class="pill">cPanel / WHM</span>
+          <span class="pill">Plesk</span>
+          <span class="pill">Nginx / Apache / LiteSpeed</span>
+          <span class="pill">MySQL / MariaDB</span>
+          <span class="pill">Postfix / Exim</span>
+          <span class="pill">CSF / firewalld</span>
+          <span class="pill">Ansible / Bash</span>
+          <span class="pill">AWS / DigitalOcean</span>
+        </div>
+
+        <div class="hero__cta mt-4">
+          <a href="about.html" class="btn btn--ghost">Full background &amp; timeline</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SERVICES ============ -->
+<section class="section" id="services">
+  <div class="wrap">
+    <div class="section-head section-head--center reveal">
+      <span class="eyebrow">What I do</span>
+      <h2 class="section-title">Services</h2>
+      <p class="section-sub">Four things I do properly, rather than twenty things I do adequately.</p>
     </div>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-container">
-            <h1 class="hero-title">
-                <span class="hero-nexus">NEXUS</span><span class="hero-flow">FLOW</span>
-            </h1>
-            <p class="hero-subtitle">The quantum leap in team collaboration. Connect minds, sync realities, achieve impossible.</p>
-            <div class="hero-buttons">
-                <a href="#" class="btn-primary">Initialize System</a>
-                <a href="#" class="btn-secondary">View Documentation</a>
-            </div>
-        </div>
-    </section>
+    <div class="grid grid--4">
+      <article class="card service reveal">
+        <span class="service__num">01 —</span>
+        <h3>Server Administration</h3>
+        <p>Day-to-day operation of Linux fleets: provisioning, patching, tuning and keeping the lights on.</p>
+        <ul>
+          <li>Provisioning &amp; baseline config</li>
+          <li>Patch &amp; kernel management</li>
+          <li>Apache / Nginx / PHP-FPM tuning</li>
+          <li>Monitoring &amp; alert design</li>
+        </ul>
+      </article>
 
-    <!-- Stats Section -->
-    <section class="stats fade-up" id="stats">
-        <div class="stats-container">
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <span class="stat-number">50K+</span>
-                    <span class="stat-label">Active Users</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">99.9%</span>
-                    <span class="stat-label">Uptime</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">500M+</span>
-                    <span class="stat-label">Tasks Processed</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">180+</span>
-                    <span class="stat-label">Countries</span>
-                </div>
-            </div>
-        </div>
-    </section>
+      <article class="card service reveal" data-delay="1">
+        <span class="service__num">02 —</span>
+        <h3>L2 / L3 Hosting Support</h3>
+        <p>Escalated tickets that L1 can't close — root-caused, fixed, and documented so they stay closed.</p>
+        <ul>
+          <li>Escalation handling &amp; SLA response</li>
+          <li>cPanel / WHM &amp; Plesk deep issues</li>
+          <li>Mail flow &amp; deliverability repair</li>
+          <li>Written root-cause analysis</li>
+        </ul>
+      </article>
 
-    <!-- Features Section -->
-    <section class="features fade-up" id="features">
-        <div class="features-container">
-            <div class="section-header">
-                <h2 class="section-title">Core Systems</h2>
-                <p class="section-subtitle">Advanced modules designed for maximum efficiency and seamless integration</p>
-            </div>
-            
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Quantum Processing</h3>
-                    <p>Experience lightning-fast data processing with our quantum-inspired algorithms that handle complex workflows in microseconds.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">🔮</div>
-                    <h3>Neural Networks</h3>
-                    <p>AI-powered decision making that learns from your team's patterns and optimizes collaboration in real-time.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">🌐</div>
-                    <h3>Holographic Interface</h3>
-                    <p>Immersive 3D workspace that transcends traditional boundaries, bringing remote teams into a shared reality.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Quantum Encryption</h3>
-                    <p>Military-grade security protocols with quantum encryption that makes your data literally impossible to breach.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">🚀</div>
-                    <h3>Hyperdrive Sync</h3>
-                    <p>Instantaneous synchronization across all devices and platforms with zero latency, no matter the distance.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
-                    <h3>Mind Reading Analytics</h3>
-                    <p>Predictive analytics so advanced, it anticipates your team's needs before they even know what they need.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+      <article class="card service reveal" data-delay="2">
+        <span class="service__num">03 —</span>
+        <h3>Security &amp; Incident Response</h3>
+        <p>Hardening before the incident, and calm, methodical cleanup after one.</p>
+        <ul>
+          <li>CIS-aligned hardening baselines</li>
+          <li>Malware &amp; rootkit remediation</li>
+          <li>Firewall, WAF &amp; SSH lockdown</li>
+          <li>Post-incident forensics report</li>
+        </ul>
+      </article>
 
-    <!-- Pricing Section -->
-    <section class="pricing fade-up" id="pricing">
-        <div class="pricing-container">
-            <div class="section-header">
-                <h2 class="section-title">Access Levels</h2>
-                <p class="section-subtitle">Choose your gateway to the future of collaboration</p>
-            </div>
-            
-            <div class="pricing-grid">
-                <div class="pricing-card">
-                    <div class="plan-name">Initiate</div>
-                    <div class="plan-price">$49</div>
-                    <div class="plan-period">per neural link</div>
-                    <ul class="plan-features">
-                        <li>Basic quantum processing</li>
-                        <li>5 holographic workspaces</li>
-                        <li>Standard encryption</li>
-                        <li>Community support matrix</li>
-                        <li>Reality sync enabled</li>
-                    </ul>
-                    <a href="#" class="btn-secondary">Enter System</a>
-                </div>
-                
-                <div class="pricing-card featured">
-                    <div class="plan-name">Nexus</div>
-                    <div class="plan-price">$149</div>
-                    <div class="plan-period">per neural link</div>
-                    <ul class="plan-features">
-                        <li>Advanced quantum algorithms</li>
-                        <li>Unlimited holo-workspaces</li>
-                        <li>Quantum encryption fortress</li>
-                        <li>Priority neural support</li>
-                        <li>Mind-reading analytics</li>
-                        <li>Hyperdrive sync protocol</li>
-                    </ul>
-                    <a href="#" class="btn-primary">Jack In</a>
-                </div>
-                
-                <div class="pricing-card">
-                    <div class="plan-name">Transcend</div>
-                    <div class="plan-price">$399</div>
-                    <div class="plan-period">per neural link</div>
-                    <ul class="plan-features">
-                        <li>Infinite processing power</li>
-                        <li>Custom reality matrices</li>
-                        <li>Temporal encryption layers</li>
-                        <li>Direct neural interface</li>
-                        <li>Predictive consciousness</li>
-                        <li>Quantum entanglement sync</li>
-                    </ul>
-                    <a href="#" class="btn-secondary">Ascend</a>
-                </div>
-            </div>
-        </div>
-    </section>
+      <article class="card service reveal" data-delay="3">
+        <span class="service__num">04 —</span>
+        <h3>Migrations &amp; Upgrades</h3>
+        <p>Moving live workloads between servers, panels or providers without customer-visible downtime.</p>
+        <ul>
+          <li>Server-to-server &amp; panel migrations</li>
+          <li>DNS cutover &amp; TTL planning</li>
+          <li>OS / PHP / MySQL version upgrades</li>
+          <li>Tested rollback plan, every time</li>
+        </ul>
+      </article>
+    </div>
 
-    <!-- Contact Section -->
-    <section class="contact fade-up" id="contact">
-        <div class="contact-container">
-            <div class="section-header">
-                <h2 class="section-title">Initialize Contact</h2>
-                <p class="section-subtitle">Send a transmission through the neural network</p>
-            </div>
-            
-            <div class="contact-form-wrapper">
-                <div class="contact-form">
-                    <div class="form-group">
-                        <label for="name">Neural ID</label>
-                        <input type="text" id="name" name="name" placeholder="Enter your designation" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email">Quantum Address</label>
-                        <input type="email" id="email" name="email" placeholder="your.id@nexusflow.com" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="message">Transmission</label>
-                        <textarea id="message" name="message" rows="5" placeholder="Compose your message to the network..." required></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn-primary btn-submit">Transmit Message</button>
-                </div>
-            </div>
-        </div>
-    </section>
+    <div class="text-center mt-6 reveal">
+      <a href="services.html" class="btn btn--ghost">See how each engagement runs</a>
+    </div>
+  </div>
+</section>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-links">
-                <a href="#">Privacy Policy</a>
-                <span class="footer-separator">•</span>
-                <a href="#">Terms of Service</a>
-                <span class="footer-separator">•</span>
-                <a href="#">Documentation</a>
-                <span class="footer-separator">•</span>
-                <a href="#">Contact Support</a>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 NexusFlow Systems. All realities reserved.</p>
-                <p class="footer-credit">Brought to you by <a href="https://templatemo.com" target="_blank" rel="noopener nofollow">TemplateMo</a></p>
-            </div>
-        </div>
-    </footer>
+<!-- ============ SKILLS ============ -->
+<section class="section" id="skills">
+  <div class="wrap">
+    <div class="section-head section-head--center reveal">
+      <span class="eyebrow">Toolbox</span>
+      <h2 class="section-title">Technical skills</h2>
+      <p class="section-sub">Depth where it matters for hosting infrastructure — and enough breadth to own a problem end to end.</p>
+    </div>
 
-    <script src="templatemo-nexus-scripts.js"></script>
+    <div class="grid grid--3">
+      <div class="card skill-group reveal">
+        <div class="skill-group__head">
+          <span class="ico" aria-hidden="true">🐧</span>
+          <h3>Operating Systems</h3>
+        </div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">RHEL / CentOS / Rocky / Alma</span><span class="bar__pct">95%</span></div><div class="bar__track"><div class="bar__fill" data-pct="95"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Ubuntu / Debian</span><span class="bar__pct">92%</span></div><div class="bar__track"><div class="bar__fill" data-pct="92"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">CloudLinux</span><span class="bar__pct">85%</span></div><div class="bar__track"><div class="bar__fill" data-pct="85"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">systemd / SELinux</span><span class="bar__pct">88%</span></div><div class="bar__track"><div class="bar__fill" data-pct="88"></div></div></div>
+      </div>
+
+      <div class="card skill-group reveal" data-delay="1">
+        <div class="skill-group__head">
+          <span class="ico" aria-hidden="true">🌐</span>
+          <h3>Web &amp; Control Panels</h3>
+        </div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">cPanel / WHM</span><span class="bar__pct">95%</span></div><div class="bar__track"><div class="bar__fill" data-pct="95"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Nginx / Apache</span><span class="bar__pct">93%</span></div><div class="bar__track"><div class="bar__fill" data-pct="93"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">LiteSpeed / OpenLiteSpeed</span><span class="bar__pct">82%</span></div><div class="bar__track"><div class="bar__fill" data-pct="82"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Plesk / DirectAdmin</span><span class="bar__pct">80%</span></div><div class="bar__track"><div class="bar__fill" data-pct="80"></div></div></div>
+      </div>
+
+      <div class="card skill-group reveal" data-delay="2">
+        <div class="skill-group__head">
+          <span class="ico" aria-hidden="true">🛡️</span>
+          <h3>Security</h3>
+        </div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">CSF / LFD / firewalld</span><span class="bar__pct">94%</span></div><div class="bar__track"><div class="bar__fill" data-pct="94"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Malware &amp; rootkit removal</span><span class="bar__pct">90%</span></div><div class="bar__track"><div class="bar__fill" data-pct="90"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">ModSecurity / Imunify360</span><span class="bar__pct">86%</span></div><div class="bar__track"><div class="bar__fill" data-pct="86"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">SSL/TLS &amp; PKI</span><span class="bar__pct">90%</span></div><div class="bar__track"><div class="bar__fill" data-pct="90"></div></div></div>
+      </div>
+
+      <div class="card skill-group reveal">
+        <div class="skill-group__head">
+          <span class="ico" aria-hidden="true">🗄️</span>
+          <h3>Databases &amp; Mail</h3>
+        </div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">MySQL / MariaDB</span><span class="bar__pct">90%</span></div><div class="bar__track"><div class="bar__fill" data-pct="90"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Postfix / Exim / Dovecot</span><span class="bar__pct">88%</span></div><div class="bar__track"><div class="bar__fill" data-pct="88"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">SPF / DKIM / DMARC</span><span class="bar__pct">92%</span></div><div class="bar__track"><div class="bar__fill" data-pct="92"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">PostgreSQL</span><span class="bar__pct">72%</span></div><div class="bar__track"><div class="bar__fill" data-pct="72"></div></div></div>
+      </div>
+
+      <div class="card skill-group reveal" data-delay="1">
+        <div class="skill-group__head">
+          <span class="ico" aria-hidden="true">⚙️</span>
+          <h3>Automation &amp; Cloud</h3>
+        </div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Bash scripting</span><span class="bar__pct">92%</span></div><div class="bar__track"><div class="bar__fill" data-pct="92"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Ansible</span><span class="bar__pct">80%</span></div><div class="bar__track"><div class="bar__fill" data-pct="80"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">AWS (EC2 / S3 / Route 53)</span><span class="bar__pct">78%</span></div><div class="bar__track"><div class="bar__fill" data-pct="78"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Docker / KVM / Proxmox</span><span class="bar__pct">76%</span></div><div class="bar__track"><div class="bar__fill" data-pct="76"></div></div></div>
+      </div>
+
+      <div class="card skill-group reveal" data-delay="2">
+        <div class="skill-group__head">
+          <span class="ico" aria-hidden="true">📊</span>
+          <h3>Monitoring &amp; Backup</h3>
+        </div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Zabbix / Nagios</span><span class="bar__pct">85%</span></div><div class="bar__track"><div class="bar__fill" data-pct="85"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">Grafana / Prometheus</span><span class="bar__pct">75%</span></div><div class="bar__track"><div class="bar__fill" data-pct="75"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">JetBackup / R1Soft / rsync</span><span class="bar__pct">90%</span></div><div class="bar__track"><div class="bar__fill" data-pct="90"></div></div></div>
+        <div class="bar"><div class="bar__top"><span class="bar__name">DR planning &amp; restore drills</span><span class="bar__pct">87%</span></div><div class="bar__track"><div class="bar__fill" data-pct="87"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURED PROJECTS ============ -->
+<section class="section" id="work">
+  <div class="wrap">
+    <div class="section-head section-head--center reveal">
+      <span class="eyebrow">Selected work</span>
+      <h2 class="section-title">Projects &amp; engagements</h2>
+      <p class="section-sub">A sample of the infrastructure problems I've owned end to end.</p>
+    </div>
+
+    <div class="grid grid--3">
+      <article class="card project reveal">
+        <div class="project__top">
+          <span class="card__icon" aria-hidden="true">🚚</span>
+          <span class="project__badge">Migration</span>
+        </div>
+        <h3>Fleet migration to AlmaLinux</h3>
+        <p>Planned and executed the move of a shared-hosting fleet off end-of-life CentOS 7 onto AlmaLinux 8, account by account, with per-batch verification and rollback snapshots.</p>
+        <div class="project__tags"><span>AlmaLinux</span><span>cPanel</span><span>rsync</span><span>DNS</span></div>
+        <p class="project__impact">→ Zero customer-reported data loss</p>
+      </article>
+
+      <article class="card project reveal" data-delay="1">
+        <div class="project__top">
+          <span class="card__icon" aria-hidden="true">🛡️</span>
+          <span class="project__badge">Security</span>
+        </div>
+        <h3>Fleet-wide hardening baseline</h3>
+        <p>Turned an inconsistent, hand-configured fleet into a single reproducible baseline — SSH policy, firewall rules, kernel parameters, fail2ban and audit logging, applied via Ansible.</p>
+        <div class="project__tags"><span>Ansible</span><span>CIS</span><span>CSF</span><span>SSH</span></div>
+        <p class="project__impact">→ Brute-force incidents down sharply</p>
+      </article>
+
+      <article class="card project reveal" data-delay="2">
+        <div class="project__top">
+          <span class="card__icon" aria-hidden="true">🚨</span>
+          <span class="project__badge">Incident</span>
+        </div>
+        <h3>Mass-defacement containment</h3>
+        <p>Contained and cleaned a cross-account compromise spreading through a vulnerable CMS plugin: isolate, scope, eradicate, restore from known-good backup, then close the entry point.</p>
+        <div class="project__tags"><span>Forensics</span><span>maldet</span><span>ModSecurity</span><span>IR</span></div>
+        <p class="project__impact">→ Contained same day, full RCA delivered</p>
+      </article>
+    </div>
+
+    <div class="text-center mt-6 reveal">
+      <a href="projects.html" class="btn btn--ghost">All projects</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TESTIMONIALS ============ -->
+<section class="section" id="testimonials">
+  <div class="wrap">
+    <div class="section-head section-head--center reveal">
+      <span class="eyebrow">Feedback</span>
+      <h2 class="section-title">What people say</h2>
+      <p class="section-sub">Comments from colleagues, managers and hosting customers I've worked with.</p>
+    </div>
+
+    <div class="grid grid--3">
+      <figure class="card quote reveal">
+        <div class="quote__mark" aria-hidden="true">"</div>
+        <blockquote><p>Alan is the person you want holding the pager. He doesn't guess — he reads the logs, tells you exactly what happened, and the fix holds. Our escalation backlog dropped noticeably after he joined the rota.</p></blockquote>
+        <figcaption class="quote__who">
+          <span class="quote__av" aria-hidden="true">TL</span>
+          <span><strong>Team Lead</strong><span>Managed Hosting Provider</span></span>
+        </figcaption>
+      </figure>
+
+      <figure class="card quote reveal" data-delay="1">
+        <div class="quote__mark" aria-hidden="true">"</div>
+        <blockquote><p>We moved 40+ sites to a new server over a weekend and not one client noticed. The rollback plan was written before the maintenance window opened — that told me everything about how he works.</p></blockquote>
+        <figcaption class="quote__who">
+          <span class="quote__av" aria-hidden="true">AG</span>
+          <span><strong>Agency Owner</strong><span>Web Design Studio</span></span>
+        </figcaption>
+      </figure>
+
+      <figure class="card quote reveal" data-delay="2">
+        <div class="quote__mark" aria-hidden="true">"</div>
+        <blockquote><p>Our mail had been landing in spam for months and nobody could explain why. Alan fixed the SPF and DKIM records, got us delisted, and then sent a document explaining what had gone wrong in plain English.</p></blockquote>
+        <figcaption class="quote__who">
+          <span class="quote__av" aria-hidden="true">OM</span>
+          <span><strong>Operations Manager</strong><span>E-commerce Client</span></span>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LATEST POSTS ============ -->
+<section class="section" id="blog">
+  <div class="wrap">
+    <div class="section-head section-head--center reveal">
+      <span class="eyebrow">From the blog</span>
+      <h2 class="section-title">Notes from the terminal</h2>
+      <p class="section-sub">Runbooks, post-mortems and hard-won lessons from managed hosting infrastructure.</p>
+    </div>
+
+    <div class="grid grid--3">
+      <a class="card post-card reveal" href="posts/zero-downtime-cpanel-migration.html">
+        <div class="post-card__meta"><span class="tag">Migrations</span><span>14 min read</span></div>
+        <h3>Zero-Downtime cPanel Migration: A Field-Tested Runbook</h3>
+        <p>The full sequence I follow to move live accounts between servers — pre-flight checks, TTL staging, delta syncs and the rollback plan you hope never to use.</p>
+        <span class="post-card__more">Read runbook <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+
+      <a class="card post-card reveal" data-delay="1" href="posts/linux-server-hardening-checklist.html">
+        <div class="post-card__meta"><span class="tag">Security</span><span>12 min read</span></div>
+        <h3>Hardening a Fresh Linux Server: The First 30 Minutes</h3>
+        <p>Everything I do between "the server exists" and "the server is safe to put traffic on" — SSH, firewall, kernel parameters, updates and audit logging.</p>
+        <span class="post-card__more">Read checklist <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+
+      <a class="card post-card reveal" data-delay="2" href="posts/diagnosing-high-server-load.html">
+        <div class="post-card__meta"><span class="tag">Troubleshooting</span><span>11 min read</span></div>
+        <h3>Diagnosing High Load Without Guessing</h3>
+        <p>A repeatable triage order — load average, then CPU vs I/O vs memory, then the actual offending process — so you stop rebooting and start fixing.</p>
+        <span class="post-card__more">Read the method <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+    </div>
+
+    <div class="text-center mt-6 reveal">
+      <a href="blog.html" class="btn btn--ghost">All articles</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="section">
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <span class="eyebrow">Next step</span>
+      <h2>Got a server that needs looking after?</h2>
+      <p>Whether it's an escalation you can't close, a migration you'd rather not do at 2am, or a fleet that's never been properly hardened — send me the details and I'll tell you honestly what I'd do.</p>
+      <div class="btn-row">
+        <a href="contact.html" class="btn btn--primary">Start a conversation</a>
+        <a href="mailto:careers.alanjantony@gmail.com" class="btn btn--ghost">Email me directly</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a href="index.html" class="brand">
+          <span class="brand__mark" aria-hidden="true">AJ</span>
+          <span>alanjoy<span class="brand__dot">.</span>sh</span>
+        </a>
+        <p>Linux server administration, L2/L3 managed hosting support, security hardening and zero-downtime migrations.</p>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+          </a>
+          <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+          </a>
+          <a href="mailto:careers.alanjantony@gmail.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="projects.html">Projects</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Writing</h4>
+        <ul>
+          <li><a href="posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
+          <li><a href="posts/linux-server-hardening-checklist.html">Server hardening</a></li>
+          <li><a href="posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
+          <li><a href="posts/detecting-a-compromised-server.html">Incident response</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:careers.alanjantony@gmail.com">careers.alanjantony<br>@gmail.com</a></li>
+          <li><a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener">LinkedIn profile</a></li>
+          <li><a href="contact.html">Start a project</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p>&copy; <span data-year>2026</span> Alan Joy. All rights reserved.</p>
+      <p>Built by hand — HTML, CSS &amp; vanilla JS. No trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="assets/js/main.js"></script>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Alan Joy",
+  "jobTitle": "Linux Server Administrator",
+  "description": "Linux server administrator specialising in L2/L3 managed hosting support, security hardening, incident response and zero-downtime server migrations.",
+  "email": "mailto:careers.alanjantony@gmail.com",
+  "url": "https://careersalanjantony-bit.github.io/nexusflow/",
+  "sameAs": [
+    "https://www.linkedin.com/in/alan-joy-6967731a7/",
+    "https://github.com/careersalanjantony-bit"
+  ],
+  "knowsAbout": [
+    "Linux system administration", "RHEL", "Ubuntu", "cPanel/WHM", "Plesk",
+    "Apache", "Nginx", "MySQL", "Postfix", "Exim", "Server security hardening",
+    "Incident response", "Server migration", "Ansible", "AWS"
+  ]
+}
+</script>
 </body>
 </html>
