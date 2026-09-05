@@ -319,6 +319,18 @@
       if (note) note.remove();
     }
 
+    // Non-JS submits round-trip through Web3Forms and come back with ?sent=1.
+    // Acknowledge that here so those visitors still get a confirmation.
+    if (/[?&]sent=1(&|$)/.test(window.location.search)) {
+      if (status) {
+        status.className = 'form-status is-ok';
+        status.textContent = 'Thanks — your message is on its way. I usually reply within 24 hours.';
+      }
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+
     function fail(field, msg) {
       var wrap = field.closest('.field');
       if (!wrap) return;

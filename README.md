@@ -107,6 +107,27 @@ submission where it is filled in. Free tier is 250 submissions/month.
 **Note:** the access key is a public, client-side value by design — it only
 permits sending to your own verified address. It is not a secret.
 
+## Asset caching
+
+`main.css` and `main.js` are referenced with a `?v=YYYYMMDD` query string:
+
+```html
+<link rel="stylesheet" href="assets/css/main.css?v=20260905">
+<script src="assets/js/main.js?v=20260905"></script>
+```
+
+**Bump that date on every page whenever you change the CSS or JS**, otherwise
+returning visitors keep running the copy their browser already cached. This
+caused a real bug once: a stale `main.js` did not intercept the contact form
+submit, so visitors were bounced to Web3Forms' own success page instead of
+staying on the site.
+
+```bash
+# bump everywhere at once
+grep -rl 'main\.\(css\|js\)?v=' --include='*.html' . \
+  | xargs sed -i 's/?v=[0-9]\{8\}/?v=20260906/g'
+```
+
 ## Running locally
 
 ```bash
