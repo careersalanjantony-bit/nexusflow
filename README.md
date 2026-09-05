@@ -109,24 +109,27 @@ permits sending to your own verified address. It is not a secret.
 
 ## Asset caching
 
-`main.css` and `main.js` are referenced with a `?v=YYYYMMDD` query string:
+`main.css` and `main.js` are referenced with a version query string:
 
 ```html
-<link rel="stylesheet" href="assets/css/main.css?v=20260905">
-<script src="assets/js/main.js?v=20260905"></script>
+<link rel="stylesheet" href="assets/css/main.css?v=3">
+<script src="assets/js/main.js?v=3"></script>
 ```
 
-**Bump that date on every page whenever you change the CSS or JS**, otherwise
-returning visitors keep running the copy their browser already cached. This
-caused a real bug once: a stale `main.js` did not intercept the contact form
-submit, so visitors were bounced to Web3Forms' own success page instead of
-staying on the site.
+**Increment that number on every CSS or JS change**, otherwise returning
+visitors keep running the copy their browser already cached. This caused a real
+bug once: a stale `main.js` did not intercept the contact form submit, so
+visitors were bounced to Web3Forms' own success page instead of staying on the
+site.
 
 ```bash
-# bump everywhere at once
-grep -rl 'main\.\(css\|js\)?v=' --include='*.html' . \
-  | xargs sed -i 's/?v=[0-9]\{8\}/?v=20260906/g'
+# bump everywhere at once (replace 4 with the next number)
+grep -rl '?v=' --include='*.html' . | grep -v legacy-template \
+  | xargs sed -i 's/?v=[0-9]\+/?v=4/g'
 ```
+
+A plain counter rather than a date: two changes on the same day would produce
+the same date string, and the bump would silently do nothing.
 
 ## Running locally
 
