@@ -4,7 +4,7 @@ Personal site and technical blog for a software engineer working Linux server
 administration and L2/L3 managed hosting support. Hand-built, no dependencies,
 no build step, no trackers.
 
-**Live:** https://careersalanjantony-bit.github.io/nexusflow/
+**Live:** https://alanjoy.site/
 
 ---
 
@@ -78,20 +78,34 @@ update the `<title>`, meta description and the JSON-LD block at the bottom, then
 add a card to `blog.html` (give it `data-tags` so search and filtering pick it
 up) and a `<url>` entry to `sitemap.xml`.
 
-## Wiring up the contact form
+## Finishing the contact form
 
-The form has no backend yet — it validates input, then opens the visitor's mail
-client pre-filled. To receive submissions properly, sign up with a form service
-(Formspree, Web3Forms, Basin) and add its endpoint as the form `action` in
-`contact.html`:
+The form posts to [Web3Forms](https://web3forms.com). One value is missing:
 
-```html
-<form class="card" id="contact-form" action="https://formspree.io/f/YOUR_ID" method="POST" ...>
-```
+1. Go to https://web3forms.com, enter `alanjoy905@gmail.com`, and they email you an
+   access key (no account needed).
+2. In `contact.html`, replace the placeholder:
 
-`assets/js/main.js` detects the `action` attribute and skips the mailto fallback
-automatically — validation still runs first. Remove the `.form-note` paragraph
-once it's live.
+   ```html
+   <input type="hidden" name="access_key" value="PASTE-YOUR-WEB3FORMS-ACCESS-KEY-HERE">
+   ```
+
+3. Commit and push. That's it.
+
+Until the key is in, the form validates and then falls back to opening the
+visitor's mail client, so it is never silently broken. The yellow setup note on
+the page removes itself automatically once a real key is present.
+
+**How it behaves once wired up:** submits in the background via `fetch`, shows an
+inline success message, and resets — the visitor never leaves the page. If the
+request fails or Web3Forms rejects it, it falls back to mailto rather than
+stranding them.
+
+**Spam:** a hidden `botcheck` honeypot field is included; Web3Forms discards any
+submission where it is filled in. Free tier is 250 submissions/month.
+
+**Note:** the access key is a public, client-side value by design — it only
+permits sending to your own verified address. It is not a secret.
 
 ## Running locally
 
