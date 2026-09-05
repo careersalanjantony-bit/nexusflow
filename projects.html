@@ -10,18 +10,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
-<title>Projects — Linux Infrastructure Work by Alan Joy</title>
-<meta name="description" content="Selected Linux infrastructure engagements: fleet migrations, security hardening baselines, incident response, performance troubleshooting and automation.">
+<title>Projects &amp; Incidents — Linux Infrastructure Work by Alan Joy</title>
+<meta name="description" content="Real production work: a PHP 5.6 to 8.2 AWS migration with a 176 GB database, InnoDB data recovery, rootkit containment, high-load triage and monitoring.">
 <link rel="canonical" href="https://careersalanjantony-bit.github.io/nexusflow/projects.html">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Projects — Linux Infrastructure Work by Alan Joy">
-<meta property="og:description" content="Selected Linux infrastructure engagements: fleet migrations, security hardening baselines, incident response, performance troubleshooting and automation.">
+<meta property="og:title" content="Projects &amp; Incidents — Linux Infrastructure Work by Alan Joy">
+<meta property="og:description" content="Real production work: a PHP 5.6 to 8.2 AWS migration with a 176 GB database, InnoDB data recovery, rootkit containment, high-load triage and monitoring.">
 <meta property="og:url" content="https://careersalanjantony-bit.github.io/nexusflow/projects.html">
 <meta property="og:site_name" content="Alan Joy">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Projects — Linux Infrastructure Work by Alan Joy">
-<meta name="twitter:description" content="Selected Linux infrastructure engagements: fleet migrations, security hardening baselines, incident response, performance troubleshooting and automation.">
-<noscript><style>.reveal{opacity:1!important;transform:none!important}.bar__fill{width:var(--fallback-pct,100%)!important}</style></noscript>
+<meta name="twitter:title" content="Projects &amp; Incidents — Linux Infrastructure Work by Alan Joy">
+<meta name="twitter:description" content="Real production work: a PHP 5.6 to 8.2 AWS migration with a 176 GB database, InnoDB data recovery, rootkit containment, high-load triage and monitoring.">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
 </head>
 <body data-page="projects" id="top">
 <div class="progress-bar" id="progress"></div>
@@ -76,8 +76,8 @@
       <span class="eyebrow">Portfolio</span>
       <h1 class="section-title">Projects &amp; engagements</h1>
       <p class="section-sub">
-        Infrastructure work doesn't produce screenshots. So here's what these projects
-        actually were: the problem, what I did, and what changed as a result.
+        Infrastructure work doesn't produce screenshots. So here's what these actually
+        were: the problem, what I did, and what changed as a result.
       </p>
     </div>
 
@@ -86,145 +86,111 @@
       <button class="filter-btn" data-tag="migration" aria-pressed="false">Migrations</button>
       <button class="filter-btn" data-tag="security" aria-pressed="false">Security</button>
       <button class="filter-btn" data-tag="incident" aria-pressed="false">Incident response</button>
+      <button class="filter-btn" data-tag="recovery" aria-pressed="false">Data recovery</button>
+      <button class="filter-btn" data-tag="cloud" aria-pressed="false">Cloud</button>
       <button class="filter-btn" data-tag="performance" aria-pressed="false">Performance</button>
       <button class="filter-btn" data-tag="automation" aria-pressed="false">Automation</button>
     </div>
 
     <div class="grid grid--3" id="project-list">
 
-      <article class="card project reveal" data-tags="migration">
+      <article class="card project reveal" data-tags="migration cloud">
         <div class="project__top">
           <span class="card__icon" aria-hidden="true">🚚</span>
           <span class="project__badge">Migration</span>
         </div>
-        <h3>CentOS 7 → AlmaLinux 8 fleet migration</h3>
-        <p>
-          CentOS 7 hit end of life with a live shared-hosting fleet still on it. I planned
-          the move to AlmaLinux 8 in batches: build the new host, sync accounts, verify
-          against a written test list, cut DNS, keep the old server warm as rollback.
-        </p>
-        <div class="project__tags"><span>AlmaLinux</span><span>cPanel</span><span>rsync</span><span>DNS</span><span>EOL</span></div>
-        <p class="project__impact">→ Fleet off EOL, zero reported data loss</p>
+        <h3>PHP 5.6 → 8.2 platform migration</h3>
+        <p>Led the move of a high-traffic AWS-hosted client onto Ubuntu 24.04, Apache 2.4 and MariaDB 10.11 with a ~176 GB database. Header-based ALB routing let the new stack serve real traffic for testing before anyone was cut over, backed by a full dump/restore sync and a Gitolite auto-deploy pipeline.</p>
+        <div class="project__tags"><span>AWS ALB</span><span>Ubuntu 24.04</span><span>MariaDB 10.11</span><span>Gitolite</span><span>PHP 8.2</span></div>
+        <p class="project__impact">→ Seconds-level target-group rollback path</p>
+      </article>
+
+      <article class="card project reveal" data-tags="performance troubleshooting" data-delay="1">
+        <div class="project__top">
+          <span class="card__icon" aria-hidden="true">⚡</span>
+          <span class="project__badge">Performance</span>
+        </div>
+        <h3>High-load triage on production nodes</h3>
+        <p>Resolved sustained load events of 45–80 on 8–24 core production servers by attributing I/O and CPU with pidstat, iostat and sar rather than guessing. Causes traced to scanner bursts running under PHP-CGI without LVE caps, oversized IMAP maildirs holding Dovecot index locks, and EXT4 metadata corruption.</p>
+        <div class="project__tags"><span>pidstat</span><span>iostat</span><span>sar</span><span>CloudLinux LVE</span><span>Dovecot</span></div>
+        <p class="project__impact">→ Root-caused, not restarted</p>
+      </article>
+
+      <article class="card project reveal" data-tags="recovery databases" data-delay="2">
+        <div class="project__top">
+          <span class="card__icon" aria-hidden="true">💾</span>
+          <span class="project__badge">Data recovery</span>
+        </div>
+        <h3>WooCommerce recovery after InnoDB corruption</h3>
+        <p>A disk-full event corrupted InnoDB and forced a MariaDB rebuild on a DirectAdmin server. Recovered order, tax, attribute and shipping data across multiple stores by working from pre-rebuild data-directory snapshots.</p>
+        <div class="project__tags"><span>InnoDB</span><span>MariaDB</span><span>DirectAdmin</span><span>WooCommerce</span></div>
+        <p class="project__impact">→ Live commerce data recovered, not written off</p>
+      </article>
+
+      <article class="card project reveal" data-tags="incident security">
+        <div class="project__top">
+          <span class="card__icon" aria-hidden="true">🚨</span>
+          <span class="project__badge">Incident</span>
+        </div>
+        <h3>Rootkit-level compromise containment</h3>
+        <p>Investigated and contained active compromises involving rogue systemd services, /etc/ld.so.preload hooks, hidden payload fetchers, webshells and crypto-mining processes. Forensic log analysis, cleanup and post-incident hardening across WordPress and Joomla environments.</p>
+        <div class="project__tags"><span>Forensics</span><span>ld.so.preload</span><span>systemd</span><span>WordPress</span><span>Joomla</span></div>
+        <p class="project__impact">→ Contained, cleaned, hardened against repeat</p>
       </article>
 
       <article class="card project reveal" data-tags="security automation" data-delay="1">
         <div class="project__top">
           <span class="card__icon" aria-hidden="true">🛡️</span>
-          <span class="project__badge">Security</span>
+          <span class="project__badge">Hardening</span>
         </div>
-        <h3>Fleet-wide hardening baseline</h3>
-        <p>
-          Years of manual setup had left every server subtly different. I defined one
-          CIS-aligned baseline — SSH policy, firewall rules, sysctl parameters, fail2ban,
-          audit logging — and rolled it out with Ansible so it stays consistent.
-        </p>
-        <div class="project__tags"><span>Ansible</span><span>CIS</span><span>CSF</span><span>SSH</span><span>auditd</span></div>
-        <p class="project__impact">→ One reproducible baseline, drift eliminated</p>
+        <h3>Repeat-incident reduction programme</h3>
+        <p>Deployed ModSecurity vendor rulesets (OWASP and Comodo) wired to CSF auto-ban triggers, Fail2Ban watching non-standard SSH ports under firewalld, and KernelCare live patching — plus a firewall rule optimisation pass.</p>
+        <div class="project__tags"><span>ModSecurity</span><span>CSF</span><span>Fail2Ban</span><span>firewalld</span><span>KernelCare</span></div>
+        <p class="project__impact">→ Fewer repeat incidents across the estate</p>
       </article>
 
-      <article class="card project reveal" data-tags="incident security" data-delay="2">
-        <div class="project__top">
-          <span class="card__icon" aria-hidden="true">🚨</span>
-          <span class="project__badge">Incident</span>
-        </div>
-        <h3>Cross-account defacement containment</h3>
-        <p>
-          A vulnerable CMS plugin let an attacker write across accounts on a shared host.
-          I isolated the server, scoped the blast radius from file timestamps and access
-          logs, removed the backdoors, restored from known-good backup, then closed the hole.
-        </p>
-        <div class="project__tags"><span>Forensics</span><span>maldet</span><span>ModSecurity</span><span>IR</span></div>
-        <p class="project__impact">→ Contained same day, RCA delivered to customers</p>
-      </article>
-
-      <article class="card project reveal" data-tags="performance">
-        <div class="project__top">
-          <span class="card__icon" aria-hidden="true">⚡</span>
-          <span class="project__badge">Performance</span>
-        </div>
-        <h3>Load-average firefight on a shared host</h3>
-        <p>
-          A busy shared server was sitting at load 40+ with customers timing out. Triage
-          showed I/O wait, not CPU — an unindexed query on one large site was hammering
-          disk. Indexed the table, tuned the MySQL buffer pool, capped the offending pool.
-        </p>
-        <div class="project__tags"><span>MySQL</span><span>iostat</span><span>PHP-FPM</span><span>Tuning</span></div>
-        <p class="project__impact">→ Load average back under 2, timeouts stopped</p>
-      </article>
-
-      <article class="card project reveal" data-tags="migration" data-delay="1">
+      <article class="card project reveal" data-tags="migration cloud" data-delay="2">
         <div class="project__top">
           <span class="card__icon" aria-hidden="true">📦</span>
           <span class="project__badge">Migration</span>
         </div>
-        <h3>Agency portfolio move, single weekend</h3>
-        <p>
-          40+ client sites moving from an ageing VPS to a new managed server. TTLs dropped
-          days in advance, full sync on Friday, delta sync Saturday night, DNS cut with the
-          old host left serving until the last resolver caught up.
-        </p>
-        <div class="project__tags"><span>WordPress</span><span>TTL</span><span>Let's Encrypt</span><span>Delta sync</span></div>
-        <p class="project__impact">→ No client-reported downtime</p>
+        <h3>DigitalOcean → AWS EC2 moves</h3>
+        <p>Executed cPanel-to-cPanel and cross-provider migrations onto AWS EC2, with post-migration validation sweeps — curl status checks across every domain, then path and permission fixes — before the old host was released.</p>
+        <div class="project__tags"><span>AWS EC2</span><span>cPanel</span><span>DigitalOcean</span><span>curl sweeps</span></div>
+        <p class="project__impact">→ Validated before handover, not after complaints</p>
       </article>
 
-      <article class="card project reveal" data-tags="security" data-delay="2">
+      <article class="card project reveal" data-tags="mail troubleshooting">
         <div class="project__top">
           <span class="card__icon" aria-hidden="true">✉️</span>
-          <span class="project__badge">Deliverability</span>
+          <span class="project__badge">Mail &amp; DNS</span>
         </div>
-        <h3>Mail reputation recovery</h3>
-        <p>
-          A client's transactional mail had been landing in spam for months. The cause was
-          a stack of small things: a broken SPF include chain, unsigned DKIM on one sending
-          source, no DMARC, and a stale blacklist entry nobody had ever contested.
-        </p>
-        <div class="project__tags"><span>SPF</span><span>DKIM</span><span>DMARC</span><span>Postfix</span><span>RBL</span></div>
-        <p class="project__impact">→ Inbox placement restored, delistings cleared</p>
+        <h3>Delivery and authentication repair</h3>
+        <p>Troubleshot delivery and authentication failures across Exim, Postfix and Dovecot — SPF, DKIM and DMARC records, spam filtering and blacklist delisting — alongside DNS record fixes, certificate renewal and manual AutoSSL recovery via acme.sh.</p>
+        <div class="project__tags"><span>Exim</span><span>Postfix</span><span>SPF / DKIM / DMARC</span><span>RBL delisting</span><span>acme.sh</span></div>
+        <p class="project__impact">→ Inbox placement and SSL restored</p>
       </article>
 
-      <article class="card project reveal" data-tags="automation">
-        <div class="project__top">
-          <span class="card__icon" aria-hidden="true">⚙️</span>
-          <span class="project__badge">Automation</span>
-        </div>
-        <h3>Backup verification pipeline</h3>
-        <p>
-          The backups were "running fine" — nobody had restored one in a year. I built a
-          scheduled job that pulls a random account nightly, restores it into an isolated
-          environment, checks the site responds, and reports a pass or fail.
-        </p>
-        <div class="project__tags"><span>Bash</span><span>cron</span><span>JetBackup</span><span>DR</span></div>
-        <p class="project__impact">→ Backups proven, not assumed</p>
-      </article>
-
-      <article class="card project reveal" data-tags="automation performance" data-delay="1">
+      <article class="card project reveal" data-tags="monitoring automation" data-delay="1">
         <div class="project__top">
           <span class="card__icon" aria-hidden="true">📊</span>
           <span class="project__badge">Monitoring</span>
         </div>
-        <h3>Alert fatigue cleanup</h3>
-        <p>
-          The on-call rota was ignoring alerts because most of them were noise. I rebuilt
-          thresholds around symptoms customers actually feel, added sane hysteresis, and
-          deleted every check that had never once led to an action.
-        </p>
-        <div class="project__tags"><span>Zabbix</span><span>Grafana</span><span>On-call</span><span>SLO</span></div>
-        <p class="project__impact">→ Fewer pages, higher signal, faster response</p>
+        <h3>Multi-server monitoring coverage</h3>
+        <p>Maintained Zabbix, Grafana and Nagios coverage across multi-server fleets, tuning alert thresholds so pages meant something, and running proactive health sweeps to catch disk and load problems before customers did.</p>
+        <div class="project__tags"><span>Zabbix</span><span>Grafana</span><span>Nagios</span><span>Alert tuning</span></div>
+        <p class="project__impact">→ Problems caught before the ticket arrives</p>
       </article>
 
-      <article class="card project reveal" data-tags="migration performance" data-delay="2">
+      <article class="card project reveal" data-tags="automation" data-delay="2">
         <div class="project__top">
-          <span class="card__icon" aria-hidden="true">🐘</span>
-          <span class="project__badge">Upgrade</span>
+          <span class="card__icon" aria-hidden="true">🌱</span>
+          <span class="project__badge">Academic</span>
         </div>
-        <h3>Fleet-wide PHP &amp; MySQL upgrade</h3>
-        <p>
-          Legacy PHP versions were blocking security patches. I inventoried every site's
-          PHP usage, staged upgrades per-account with a per-domain version override, and
-          gave customers a compatibility window before the old handler was withdrawn.
-        </p>
-        <div class="project__tags"><span>PHP-FPM</span><span>MariaDB</span><span>MultiPHP</span><span>Staging</span></div>
-        <p class="project__impact">→ Fleet on supported versions, no forced breakage</p>
+        <h3>IoT plant-watering automation</h3>
+        <p>Internship project at Exposys Data Labs: an Arduino-based irrigation system using soil-moisture sensors to regulate water levels automatically.</p>
+        <div class="project__tags"><span>Arduino</span><span>IoT</span><span>Sensors</span></div>
+        <p class="project__impact">→ Built end to end during a one-month internship</p>
       </article>
 
     </div>
@@ -237,8 +203,8 @@
   <div class="wrap">
     <div class="cta-band reveal">
       <span class="eyebrow">Your turn</span>
-      <h2>Your infrastructure could be the next one on this list</h2>
-      <p>Migration, hardening pass, or an incident you're still cleaning up — tell me the shape of the problem and I'll tell you how I'd approach it.</p>
+      <h2>Want the detail behind any of these?</h2>
+      <p>Happy to walk through the diagnosis on any of these — what the symptoms looked like, how it was attributed, and what the fix actually was.</p>
       <div class="btn-row">
         <a href="contact.html" class="btn btn--primary">Start a conversation</a>
         <a href="blog.html" class="btn btn--ghost">Read how I work</a>
@@ -257,7 +223,7 @@
           <span class="brand__mark" aria-hidden="true">AJ</span>
           <span>alanjoy<span class="brand__dot">.</span>sh</span>
         </a>
-        <p>Linux server administration, L2/L3 managed hosting support, security hardening and zero-downtime migrations.</p>
+        <p>Software engineer working Linux server administration and L2/L3 managed hosting support at Bobcares, Kochi. Forensics, recovery and migrations.</p>
         <div class="social-row">
           <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
@@ -265,7 +231,7 @@
           <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
           </a>
-          <a href="mailto:careers.alanjantony@gmail.com" aria-label="Email">
+          <a href="mailto:alanjoy905@gmail.com" aria-label="Email">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
           </a>
         </div>
@@ -297,7 +263,7 @@
       <div>
         <h4>Contact</h4>
         <ul>
-          <li><a href="mailto:careers.alanjantony@gmail.com">careers.alanjantony<br>@gmail.com</a></li>
+          <li><a href="mailto:alanjoy905@gmail.com">alanjoy905@gmail.com</a></li>
           <li><a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener">LinkedIn profile</a></li>
           <li><a href="contact.html">Start a project</a></li>
         </ul>
