@@ -136,10 +136,9 @@ ul, ol { list-style: none; }
   width: 140%;
   height: 140%;
   background:
-    radial-gradient(circle at 22% 28%, rgba(34, 211, 238, 0.16) 0%, transparent 42%),
-    radial-gradient(circle at 78% 18%, rgba(167, 139, 250, 0.14) 0%, transparent 40%),
-    radial-gradient(circle at 62% 74%, rgba(74, 222, 128, 0.10) 0%, transparent 44%);
-  filter: blur(60px);
+    radial-gradient(circle at 22% 28%, rgba(34, 211, 238, 0.20) 0%, rgba(34, 211, 238, 0.06) 28%, transparent 58%),
+    radial-gradient(circle at 78% 18%, rgba(167, 139, 250, 0.18) 0%, rgba(167, 139, 250, 0.05) 26%, transparent 56%),
+    radial-gradient(circle at 62% 74%, rgba(74, 222, 128, 0.13) 0%, rgba(74, 222, 128, 0.04) 30%, transparent 60%);
   animation: auroraDrift 34s ease-in-out infinite alternate;
 }
 
@@ -1453,4 +1452,153 @@ h1, h2, h3, h4 { font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
   }
   .stat__num { font-size: 1.5rem; }
   .article { font-size: 0.98rem; }
+}
+
+/* ---------- 29. Hero: 3D fleet monitor ---------- */
+/* Replaces the flat terminal card. A rotating constellation of server nodes —
+   the thing Alan actually watches all day — rendered on canvas with a live HUD
+   and a streaming log strip. */
+
+.fleet {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, rgba(10, 14, 23, 0.97), rgba(5, 7, 13, 0.98));
+  box-shadow: var(--shadow-md), 0 0 70px rgba(34, 211, 238, 0.08);
+  overflow: hidden;
+  font-family: var(--font-mono);
+}
+
+.fleet__stage {
+  position: relative;
+  aspect-ratio: 1 / 0.82;
+  min-height: 260px;
+  overflow: hidden;
+  /* A faint floor grid gives the rotation something to read against */
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 50%, rgba(34, 211, 238, 0.07), transparent 70%);
+}
+
+.fleet__stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+.fleet__stage canvas:active { cursor: grabbing; }
+
+/* HUD */
+.fleet__hud {
+  position: absolute;
+  top: 0.9rem;
+  left: 1rem;
+  display: grid;
+  gap: 0.45rem;
+  pointer-events: none;
+}
+.fleet__stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+.fleet__stat .k { color: var(--text-dim); text-transform: uppercase; }
+.fleet__stat .v {
+  color: var(--cyan);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+}
+.fleet__stat .v.is-alert { color: var(--rose); }
+
+.fleet__legend {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.9rem;
+  display: grid;
+  gap: 0.35rem;
+  pointer-events: none;
+  text-align: right;
+}
+.fleet__legend span {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.fleet__legend i {
+  width: 7px; height: 7px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.fleet__legend .ok  { background: var(--cyan); box-shadow: 0 0 8px rgba(34, 211, 238, 0.8); }
+.fleet__legend .bad { background: var(--rose); box-shadow: 0 0 8px rgba(251, 113, 133, 0.8); }
+
+.fleet__hint {
+  position: absolute;
+  left: 1rem;
+  bottom: 0.9rem;
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.5);
+  pointer-events: none;
+}
+
+/* Streaming log strip along the bottom */
+.fleet__log {
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0.7rem 1rem;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  min-height: 2.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.fleet__log .ts { color: var(--text-dim); flex-shrink: 0; }
+.fleet__log .lv { flex-shrink: 0; font-weight: 700; }
+.fleet__log .lv--ok   { color: var(--green); }
+.fleet__log .lv--warn { color: var(--amber); }
+.fleet__log .lv--info { color: var(--cyan); }
+.fleet__log .msg { overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 900px) {
+  .fleet__stage { aspect-ratio: 1 / 0.68; }
+  .fleet__legend { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fleet__stage canvas { cursor: default; }
+}
+
+/* ---------- 30. Avatar with photo ---------- */
+/* Initials sit underneath; the photo covers them once it loads. If the file is
+   missing the script removes the <img> and the initials show through. */
+.avatar { position: relative; overflow: hidden; }
+.avatar__initials {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.avatar__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  z-index: 1;
 }
