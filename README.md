@@ -4,7 +4,7 @@ Personal site and technical blog for a software engineer working Linux server
 administration and L2/L3 managed hosting support. Hand-built, no dependencies,
 no build step, no trackers.
 
-**Live:** https://careersalanjantony-bit.github.io/nexusflow/
+**Live:** https://alanjoy.site/
 
 ---
 
