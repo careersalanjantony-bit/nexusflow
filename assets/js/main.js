@@ -305,6 +305,20 @@
 
     var status = form.querySelector('.form-status');
 
+    // Only POST once a real access key has replaced the placeholder; otherwise fall
+    // back to mailto, so the form is never quietly broken while setup is pending.
+    function endpointReady() {
+      var key = form.querySelector('[name="access_key"]');
+      var value = key ? key.value.trim() : '';
+      return !!(form.getAttribute('action') && value && value.indexOf('PASTE-') !== 0);
+    }
+
+    // The setup reminder is for the site owner, not visitors — drop it once wired up.
+    if (endpointReady()) {
+      var note = document.getElementById('form-setup-note');
+      if (note) note.remove();
+    }
+
     function fail(field, msg) {
       var wrap = field.closest('.field');
       if (!wrap) return;
@@ -352,23 +366,55 @@
         return;
       }
 
-      // No form backend is wired up yet — see README ("Wire up the contact form").
-      // Until an action URL is set, fall back to opening the visitor's mail client.
-      if (!form.getAttribute('action')) {
-        e.preventDefault();
+      // Validation passed. JS always owns the submit from here, so the visitor can
+      // never be shown the endpoint's raw JSON response.
+      e.preventDefault();
+
+      var mailto = form.getAttribute('data-mailto');
+
+      function mailtoFallback(reason) {
         var subject = encodeURIComponent('Website enquiry from ' + (name ? name.value.trim() : ''));
         var body = encodeURIComponent(
           (message ? message.value.trim() : '') +
           '\n\n---\nFrom: ' + (name ? name.value.trim() : '') +
           '\nEmail: ' + (email ? email.value.trim() : '')
         );
-        window.location.href = 'mailto:' + form.getAttribute('data-mailto') + '?subject=' + subject + '&body=' + body;
-
+        window.location.href = 'mailto:' + mailto + '?subject=' + subject + '&body=' + body;
         if (status) {
           status.className = 'form-status is-ok';
-          status.textContent = 'Opening your email client — if nothing happens, write to ' + form.getAttribute('data-mailto') + ' directly.';
+          status.textContent = reason + ' Opening your email client instead — if nothing happens, write to ' + mailto + ' directly.';
         }
       }
+
+      if (!endpointReady()) {
+        mailtoFallback('The contact form is not connected yet.');
+        return;
+      }
+
+      var btn = form.querySelector('button[type="submit"]');
+      var btnHTML = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+      if (status) { status.className = 'form-status'; }
+
+      fetch(form.getAttribute('action'), {
+        method: 'POST',
+        body: new FormData(form)
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (!data || !data.success) throw new Error((data && data.message) || 'Submission rejected');
+          form.reset();
+          if (status) {
+            status.className = 'form-status is-ok';
+            status.textContent = 'Thanks — your message is on its way. I usually reply within 24 hours.';
+          }
+        })
+        .catch(function () {
+          mailtoFallback("Sorry, that didn't send.");
+        })
+        .then(function () {
+          if (btn) { btn.disabled = false; btn.innerHTML = btnHTML; }
+        });
     });
   }
 

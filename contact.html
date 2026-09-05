@@ -154,7 +154,21 @@
         </div>
       </div>
 
-      <form class="card reveal" data-delay="1" id="contact-form" data-mailto="alanjoy905@gmail.com" style="padding: clamp(1.5rem, 3vw, 2.25rem);">
+      <form class="card reveal" data-delay="1" id="contact-form"
+            action="https://api.web3forms.com/submit" method="POST"
+            data-mailto="alanjoy905@gmail.com"
+            style="padding: clamp(1.5rem, 3vw, 2.25rem);">
+
+        <!-- Web3Forms: paste your access key below. Until you do, the form falls
+             back to opening the visitor's mail client, so it never silently breaks. -->
+        <input type="hidden" name="access_key" value="PASTE-YOUR-WEB3FORMS-ACCESS-KEY-HERE">
+        <input type="hidden" name="subject" value="New enquiry from alanjoy.site">
+        <input type="hidden" name="from_name" value="alanjoy.site contact form">
+
+        <!-- Honeypot: hidden from people, filled in by bots. Web3Forms rejects any
+             submission where this is set. -->
+        <input type="checkbox" name="botcheck" style="display: none;" tabindex="-1" autocomplete="off" aria-hidden="true">
+
         <h2 style="font-size: 1.35rem; margin-bottom: 0.5rem;">Send a message</h2>
         <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.5rem;">
           The more context you give me, the more useful my first reply will be.
@@ -205,9 +219,10 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </button>
 
-          <p class="form-note">
-            No form backend is connected yet, so this opens your email client with the
-            message pre-filled. See the README to wire it up to a form service.
+          <p class="form-note" id="form-setup-note">
+            Form backend not finished: paste your Web3Forms access key into
+            <code>contact.html</code>. Until then this opens your email client with the
+            message pre-filled. This note disappears once the key is in.
           </p>
         </div>
       </form>
