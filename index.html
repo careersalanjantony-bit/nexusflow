@@ -111,31 +111,37 @@
         </div>
       </div>
 
-      <!-- Terminal card -->
-      <div class="terminal" aria-label="Terminal showing a server status summary" role="img">
+      <!-- 3D fleet monitor -->
+      <div class="fleet">
         <div class="terminal__bar">
           <span class="terminal__dot terminal__dot--r"></span>
           <span class="terminal__dot terminal__dot--y"></span>
           <span class="terminal__dot terminal__dot--g"></span>
-          <span class="terminal__title">alan@prod-edge-01: ~</span>
+          <span class="terminal__title">fleet-monitor — 44 nodes</span>
         </div>
-        <div class="terminal__body">
-          <p><span class="t-prompt">alan@prod-edge-01:~$</span> <span class="t-cmd">whoami --verbose</span></p>
-          <p><span class="t-key">name</span>      <span class="t-val">Alan Joy</span>
-<span class="t-key">role</span>      <span class="t-val">Software Engineer — Server Support</span>
-<span class="t-key">tier</span>      <span class="t-val">L2 / L3 escalation</span>
-<span class="t-key">org</span>       <span class="t-val">Bobcares · Kochi, India</span>
-<span class="t-key">focus</span>     <span class="t-val">forensics · recovery · migrations</span>
-<span class="t-key">stack</span>     <span class="t-val">RHEL · Ubuntu · cPanel · DirectAdmin</span></p>
-          <p>&nbsp;</p>
-          <p><span class="t-prompt">alan@prod-edge-01:~$</span> <span class="t-cmd">systemctl status availability</span></p>
-          <p><span class="t-ok">●</span> <span class="t-out">availability.service — customer-facing uptime</span>
-   <span class="t-key">Loaded:</span> <span class="t-out">loaded (/etc/monitoring/zabbix.conf; enabled)</span>
-   <span class="t-key">Active:</span> <span class="t-ok">active (running)</span>
-   <span class="t-key">Memory:</span> <span class="t-out">calm. Load average: 0.14</span></p>
-          <p>&nbsp;</p>
-          <p><span class="t-prompt">alan@prod-edge-01:~$</span> <span class="t-cmd">tail -f /var/log/inbox</span></p>
-          <p><span class="t-out">[ok] awaiting your message</span> <span class="caret" aria-hidden="true"></span></p>
+
+        <div class="fleet__stage">
+          <canvas id="fleet-canvas" role="img"
+                  aria-label="A slowly rotating three-dimensional constellation of server nodes linked by network edges. Most nodes glow cyan for healthy; occasionally one flares red as an incident, then returns to healthy once resolved."></canvas>
+
+          <div class="fleet__hud" aria-hidden="true">
+            <div class="fleet__stat"><span class="k">Nodes</span><span class="v" data-hud="nodes">44</span></div>
+            <div class="fleet__stat"><span class="k">Load avg</span><span class="v" data-hud="load">0.42</span></div>
+            <div class="fleet__stat"><span class="k">Incidents</span><span class="v" data-hud="inc">0</span></div>
+          </div>
+
+          <div class="fleet__legend" aria-hidden="true">
+            <span><i class="ok"></i> Healthy</span>
+            <span><i class="bad"></i> Incident</span>
+          </div>
+
+          <p class="fleet__hint" aria-hidden="true">Drag to rotate</p>
+        </div>
+
+        <div class="fleet__log" aria-hidden="true">
+          <span class="ts" data-hud="log-ts">--:--:--</span>
+          <span class="lv lv--ok" data-hud="log-lv">OK</span>
+          <span class="msg" data-hud="log-msg">fleet monitor online</span>
         </div>
       </div>
     </div>
@@ -171,7 +177,10 @@
   <div class="wrap">
     <div class="about">
       <div class="about__portrait reveal">
-        <div class="avatar" aria-hidden="true">AJ</div>
+        <div class="avatar">
+          <img class="avatar__img" src="assets/img/alan-joy.jpg" alt="Alan Joy" width="128" height="128" decoding="async">
+          <span class="avatar__initials" aria-hidden="true">AJ</span>
+        </div>
         <h3>Alan Joy</h3>
         <p class="role">Software Engineer — Server Support</p>
         <ul class="meta-list">
