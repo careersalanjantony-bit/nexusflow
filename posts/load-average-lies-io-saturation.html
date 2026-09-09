@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Alan Joy">
+<meta name="theme-color" content="#05070d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/main.css?v=3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
+<title>The Load Was 117 and the CPUs Were Idle — Alan Joy</title>
+<meta name="description" content="A production server sat at load 10 with 82% idle CPUs. Splitting the load average, doing the arithmetic on svctm and Little’s law, and reading wchan on blocked processes to find a storage IOPS ceiling no guest-side change could raise.">
+<link rel="canonical" href="https://alanjoy.site/posts/load-average-lies-io-saturation.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Load Was 117 and the CPUs Were Idle — Alan Joy">
+<meta property="og:description" content="A production server sat at load 10 with 82% idle CPUs. Splitting the load average, doing the arithmetic on svctm and Little’s law, and reading wchan on blocked processes to find a storage IOPS ceiling no guest-side change could raise.">
+<meta property="og:url" content="https://alanjoy.site/posts/load-average-lies-io-saturation.html">
+<meta property="og:site_name" content="Alan Joy">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Load Was 117 and the CPUs Were Idle — Alan Joy">
+<meta name="twitter:description" content="A production server sat at load 10 with 82% idle CPUs. Splitting the load average, doing the arithmetic on svctm and Little’s law, and reading wchan on blocked processes to find a storage IOPS ceiling no guest-side change could raise.">
+<noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
+</head>
+<body data-page="blog" id="top">
+<div class="progress-bar" id="progress"></div>
+
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-aurora"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="../index.html" class="brand" aria-label="Alan Joy — home">
+      <span class="brand__mark" aria-hidden="true">AJ</span>
+      <span>alanjoy<span class="brand__dot">.</span>site</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html" data-nav="home">Home</a>
+      <a href="../about.html" data-nav="about">About</a>
+      <a href="../services.html" data-nav="services">Services</a>
+      <a href="../projects.html" data-nav="projects">Projects</a>
+      <a href="../blog.html" data-nav="blog">Blog</a>
+      <a href="../contact.html" data-nav="contact">Contact</a>
+    </nav>
+
+    <div class="nav__actions">
+      <a href="../contact.html" class="btn btn--primary btn--sm">Hire me</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="../index.html" data-nav="home">Home</a>
+  <a href="../about.html" data-nav="about">About</a>
+  <a href="../services.html" data-nav="services">Services</a>
+  <a href="../projects.html" data-nav="projects">Projects</a>
+  <a href="../blog.html" data-nav="blog">Blog</a>
+  <a href="../contact.html" data-nav="contact">Contact</a>
+  <a href="../contact.html" class="btn btn--primary">Hire me</a>
+</div>
+
+<main id="main">
+<section class="post-hero">
+  <div class="wrap">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="../index.html">Home</a><span class="sep">/</span><a href="../blog.html">Blog</a><span class="sep">/</span><span>Troubleshooting</span>
+    </nav>
+    <h1 class="post-title">The Load Was 117 and the CPUs Were Idle</h1>
+    <div class="post-meta">
+      <span class="tag">Troubleshooting</span>
+      <time datetime="2026-09-09">9 September 2026</time>
+      <span>· 15 min read</span>
+      <span>· by Alan Joy</span>
+    </div>
+  </div>
+</section>
+
+<article class="section" style="padding-top: 0;">
+  <div class="wrap">
+    <div class="article">
+<p>
+  The alert said load average 12.48 on a 16-core box, with a spike to 117.92 in the
+  <code>sar</code> history. The obvious reading is that something is eating the CPUs.
+</p>
+<p>
+  The CPUs were 81% idle. They had been idle the whole time.
+</p>
+<p>
+  This is a walk through how that server was diagnosed, because the reasoning
+  generalises: <strong>load average on Linux is not a measure of CPU demand</strong>, and
+  treating it as one sends you looking in the wrong place for hours.
+</p>
+
+<div class="callout">
+  <span class="callout__ico" aria-hidden="true">💡</span>
+  <p><strong>Why Linux is different.</strong> Most Unixes count only runnable tasks in the load average. Linux also counts tasks in <strong>uninterruptible sleep</strong> — state <code>D</code>, almost always blocked on disk. So a Linux load of 117 can mean 117 processes waiting on storage while every core sits idle. That design choice is the entire story here.</p>
+</div>
+
+<h2 id="first-question">Step 1: is anything actually running?</h2>
+<p>
+  Before touching anything, ask the load average to break itself down. The fourth
+  field of <code>/proc/loadavg</code> is <em>runnable / total</em> processes.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>the number that decides your next hour</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>$ nproc
+16
+
+$ cat /proc/loadavg
+10.76 10.42 10.74 4/604 26423
+                   ^
+                   4 runnable, out of 604 processes</code></pre>
+</div>
+
+<p>
+  Load 10.76, and <strong>four</strong> tasks runnable. If this were CPU pressure that number
+  would be somewhere near the load. It isn't, so the other ~7 are blocked on
+  something. On a server, "something" is nearly always I/O.
+</p>
+<p>
+  That one command reframes the whole investigation. Everything after it is
+  confirming the disk and finding out why.
+</p>
+
+<h2 id="rule-out">Step 2: rule out CPU and memory properly</h2>
+<p>
+  A hypothesis is worth little until the alternatives are dead. Both take one command.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>sar — CPU across the spike window</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>              CPU     %user     %nice   %system   %iowait    %steal     %idle
+11:00:01 AM   all      6.22      0.00      1.49     11.25      0.00     81.03
+11:10:01 AM   all      3.82      0.00      0.92     11.87      0.00     83.40
+11:20:01 AM   all      6.79      0.00      1.69      9.99      0.00     81.54
+Average:      all      5.61      0.00      1.37     11.04      0.00     81.99</code></pre>
+</div>
+
+<p>
+  82% idle on average, and — importantly — <code>%steal</code> is <strong>0</strong>. On a VM,
+  steal time is the hypervisor giving your cycles to another guest. Zero steal rules
+  out CPU contention on the host, which is the other explanation people reach for.
+</p>
+<p>
+  Memory next. The temptation is to look at "used" and panic:
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>free and swap activity</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>              total        used        free      shared  buff/cache   available
+Mem:          48136       35110        1246        2439       11779       10125
+Swap:         16127         100       16027
+
+           pswpin/s  pswpout/s
+11:00:01 AM    0.00       0.00
+11:10:01 AM    0.00       0.00
+11:20:01 AM    0.00       0.00</code></pre>
+</div>
+
+<p>
+  97% "used" looks alarming and means nothing here. Most of it is a 24 GB database
+  buffer pool plus page cache, which is exactly what you want RAM doing. The figure
+  that matters is <strong>swap activity, and it is flat zero</strong>. Nothing is being paged.
+  Memory is not the constraint.
+</p>
+
+<h2 id="the-disk">Step 3: the disk, and the arithmetic that proves it</h2>
+<p>
+  Now the actual cause. This is the part worth internalising, because the numbers
+  prove the conclusion rather than suggesting it.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>sar -d — averaged over the window</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>        DEV      tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz    await   svctm   %util
+Average: sda   141.17      0.03   1905.16     13.50    150.64  1067.07    6.95   98.05
+Average: sdb    21.87      0.00   1182.65     54.08      1.45    66.36   16.19   35.41
+Average: vg-root  1.19     0.03     23.52     19.76      3.60  3018.82  817.46   97.41
+Average: vg-home 140.71    0.00   1920.48     13.65    148.76  1057.27    6.97   98.02</code></pre>
+</div>
+
+<p>Three calculations turn that table into a verdict.</p>
+
+<h3>1. The device's ceiling</h3>
+<p>
+  <code>svctm</code> is how long the device takes to service one request: <strong>6.95 ms</strong>.
+  So the most it can ever do is:
+</p>
+<div class="codeblock">
+  <div class="codeblock__bar"><span>capacity</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>1 / 0.00695 s = ~144 requests per second</code></pre>
+</div>
+<p>
+  Observed <code>tps</code> is <strong>141</strong>. The application is asking for 98% of everything
+  the device can deliver. At that utilisation, queueing theory says latency stops
+  being linear and starts climbing a wall.
+</p>
+
+<h3>2. The queue is real, not an artefact</h3>
+<p>
+  Little's law says queue length equals arrival rate times time in system. Check it
+  against the reported queue depth:
+</p>
+<div class="codeblock">
+  <div class="codeblock__bar"><span>Little's law</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>tps 141 x await 1.067 s = 150.4     vs.  avgqu-sz 150.64</code></pre>
+</div>
+<p>
+  They agree to three significant figures. There genuinely are ~150 requests sitting
+  in a queue whose configured depth is 128 — the queue is permanently over-full.
+  Each request takes 7 ms to service and <strong>1,067 ms</strong> to complete. Virtually all
+  of that is waiting.
+</p>
+
+<h3>3. It's request count, not throughput</h3>
+<div class="codeblock">
+  <div class="codeblock__bar"><span>request size</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>avgrq-sz 13.5 sectors x 512 bytes = 6.75 KB per request
+141 tps x 6.75 KB = under 1 MB/s</code></pre>
+</div>
+<p>
+  Under a megabyte per second. If you were watching a bandwidth graph you would see
+  nothing at all. <strong>Small random writes exhaust a device by request count long
+  before they trouble its throughput</strong>, and this workload is entirely writes —
+  <code>rd_sec/s</code> is ~0 on every device, because the working set is fully cached in RAM.
+</p>
+
+<div class="callout callout--ok">
+  <span class="callout__ico" aria-hidden="true">✅</span>
+  <p><strong>The <code>vg-root</code> line is the one people miss.</strong> It shows 3,019 ms latency at just 1.2 requests per second — barely any traffic, appalling latency. That volume shares a physical disk with the busy one. Anything writing to <code>/</code> queues behind everything writing to <code>/home</code>. A quiet filesystem can be crippled by a noisy neighbour on the same spindle.</p>
+</div>
+
+<h2 id="d-state">Step 4: ask the blocked processes what they're waiting for</h2>
+<p>
+  <code>ps</code> can print <code>wchan</code> — the kernel function a sleeping process is parked in.
+  For D-state processes this names the exact thing they're blocked on.
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>every process in uninterruptible sleep, and why</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>$ ps -eo state,pid,wchan:24,etimes,user,args | awk '$1 ~ /^D/'
+
+D   786 flush_work              6132315 root    [xfsaild/dm-2]
+D  3465 get_request               30377 root    [kworker/u32:3]
+D 17434 xlog_state_get_iclog_spa  11069 root    [kworker/11:2]
+D 17987 call_rwsem_down_write_fa   2603 postfix pickup -l -t unix -u
+D 25245 blkdev_issue_flush          706 postfix bounce -z -t unix -u
+D 28477 xfs_log_force_lsn            21 appuser postdrop -r</code></pre>
+</div>
+
+<p>Two entries in that list are worth stopping on.</p>
+<ul>
+  <li>
+    <strong><code>xfsaild</code> with <code>etimes</code> 6,132,315.</strong> That is elapsed seconds — 71 days,
+    matching the machine's entire uptime. The XFS log flusher for that filesystem has
+    been blocked continuously since boot. It has never once caught up.
+  </li>
+  <li>
+    <strong><code>get_request</code>.</strong> The kernel ran out of free slots in the block device
+    request queue. Not slow — <em>full</em>.
+  </li>
+</ul>
+
+<p>And the kernel had been saying so all along:</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>dmesg — 120-second hung task warnings</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>[Mon Jun 29 17:58:06] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[Mon Jun 29 18:06:06] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[Mon Jun 29 18:30:06] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.</code></pre>
+</div>
+
+<p>
+  Those start hours after the last boot. This was never an incident — it is a
+  <strong>chronic condition</strong> that finally crossed an alert threshold.
+</p>
+
+<h2 id="the-spike">Step 5: the spike that wasn't a spike</h2>
+<p>
+  Load 117.92 at 11:10 still needs explaining. The instinct is to hunt for what
+  launched. Compare the run queue against the process list instead:
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>sar -q</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>          runq-sz  plist-sz  ldavg-1  ldavg-5  ldavg-15  blocked
+11:00:01       47       708    10.17    10.45     10.65        3
+11:10:01       29       896   117.92    60.82     30.66        3
+11:20:01       32       682    10.43    17.08     21.35        3</code></pre>
+</div>
+
+<p>
+  Process count rose by 188 while the <strong>run queue actually fell</strong>, from 47 to 29.
+  Those 188 processes were not running. Now work out whether 188 is even unusual:
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>the server's baseline fork rate</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>$ grep ^processes /proc/stat
+processes 22712416
+
+22,712,416 forks / 6,132,120 s uptime = 3.7 forks/s = ~222 per minute</code></pre>
+</div>
+
+<p>
+  The server normally creates about 222 processes a minute. The "spike" of 188 is
+  <strong>less than one minute of ordinary process creation</strong>. Nothing unusual started.
+  The usual per-minute jobs started, couldn't complete because they were stuck on
+  disk, and piled up. The load average measured the pile.
+</p>
+
+<h2 id="feedback">Step 6: why it parks at 10 instead of oscillating</h2>
+<p>
+  A saturated disk alone would produce a load that rises and falls with demand. This
+  one sat at ~10 indefinitely, because the symptom feeds the cause:
+</p>
+<ol>
+  <li>Disk latency is high, so a per-minute cron job takes longer than a minute</li>
+  <li>The next copy starts before the previous finishes, so concurrency rises</li>
+  <li>More concurrent jobs issue more I/O</li>
+  <li>More I/O means higher latency — back to step 1</li>
+</ol>
+<p>
+  The system finds an equilibrium where jobs overlap just enough to keep the disk
+  pinned. That is why load parks at a number rather than spiking and recovering, and
+  it is why <code>flock</code> on overlapping cron jobs is a real mitigation rather than
+  housekeeping.
+</p>
+
+<h2 id="ceiling">Step 7: knowing when you've hit a wall you don't own</h2>
+<p>
+  Every knob inside the guest was already correct — which is itself a finding worth
+  reporting, because it stops anyone else re-treading it:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Checked</th><th>Found</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td>I/O scheduler</td><td><code>deadline</code></td><td>Already correct</td></tr>
+    <tr><td>Queue depth</td><td><code>nr_requests</code> 128</td><td>Already exceeded — raising it only adds latency</td></tr>
+    <tr><td>Storage driver</td><td>virtio-scsi</td><td>Correct paravirtual driver</td></tr>
+    <tr><td>Software RAID</td><td>None present</td><td>No degraded array</td></tr>
+    <tr><td>Database tuning</td><td>Buffer pool &gt; dataset, relaxed flush</td><td>Already optimal, own disk at 35%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout callout--danger">
+  <span class="callout__ico" aria-hidden="true">⚠️</span>
+  <p><strong>Raising <code>nr_requests</code> here would make things worse.</strong> The queue is already over-full. A deeper queue does not create capacity — it just lets more requests wait longer. It is a tempting knob precisely because it looks like it should help.</p>
+</div>
+
+<p>
+  ~144 IOPS at 6.75 KB requests is mechanical-disk performance, or a throttled and
+  contended shared volume. A flat ceiling with <code>svctm</code> pinned at 6.95 ms in every
+  single sample is also exactly what a configured per-VM IOPS limit looks like.
+</p>
+<p>
+  Either way: <strong>no change inside the guest can raise it.</strong> The honest deliverable
+  at that point is demand-side mitigation, plus the numbers the platform team needs
+  to make the capacity case — the <code>svctm</code>, <code>tps</code> and <code>avgqu-sz</code> figures
+  argue it better than any prose.
+</p>
+
+<h2 id="incidental">What turns up on the way</h2>
+<p>
+  Investigations like this always surface unrelated problems. Two worth the mention:
+</p>
+
+<div class="codeblock">
+  <div class="codeblock__bar"><span>counting cron mail by subject</span><button class="copy-btn" type="button">Copy</button></div>
+<pre><code>$ grep -aoP '^Subject: \K.*' /var/spool/mail/appuser | sort | uniq -c | sort -rn | head -3
+  43734 Cron  /usr/bin/rsync -a ...
+   1584 Cron  /usr/bin/php .../backup.php 2>&1 >> .../backup.log</code></pre>
+</div>
+
+<p>
+  <strong>43,734 ÷ 1,440 runs per day = 30.4 days.</strong> A sync job had failed every single
+  minute for a month. <code>rsync -a</code> is silent on success, so every one of those
+  messages is a failure, and nobody was reading that mailbox.
+</p>
+<p>
+  The second line is a redirect ordering bug: <code>2&gt;&amp;1 &gt;&gt; file</code> points stderr at the
+  <em>current</em> stdout (the terminal, or in cron, mail) and only then redirects stdout
+  to the file. Errors never reach the log they were meant for. It has to be
+  <code>&gt;&gt; file 2&gt;&amp;1</code>. The order looks interchangeable and isn't.
+</p>
+
+<hr>
+
+<h2 id="method">The method, stripped down</h2>
+<ol>
+  <li><strong>Split the load average</strong> — <code>/proc/loadavg</code> field 4. Runnable, or blocked?</li>
+  <li><strong>Kill the alternatives</strong> — <code>%idle</code> and <code>%steal</code> for CPU, <code>pswpin/s</code> for memory. Not "used", <em>swap activity</em>.</li>
+  <li><strong>Do the arithmetic</strong> — <code>1/svctm</code> is the ceiling. Compare to <code>tps</code>. Check <code>avgqu-sz</code> against Little's law.</li>
+  <li><strong>Ask the blocked processes</strong> — <code>wchan</code> names the exact kernel path.</li>
+  <li><strong>Check whether the spike is real</strong> — compare the process delta against the baseline fork rate before assuming something launched.</li>
+  <li><strong>Know when the ceiling isn't yours</strong> — and hand over numbers, not adjectives.</li>
+</ol>
+
+<p>
+  None of that requires clever tooling. It is <code>sar</code>, <code>ps</code>, <code>/proc</code> and
+  arithmetic. What it requires is not accepting "the load is high" as a description of
+  the problem — because on Linux, a load of 117 with idle CPUs isn't a busy server.
+  It's a queue.
+</p>
+    </div>
+  </div>
+</article>
+
+<div class="wrap">
+  <div class="post-footer">
+    <div class="author-box reveal">
+      <span class="av" aria-hidden="true">AJ<img class="avatar__img" src="../assets/img/alan-joy.jpg" alt="" width="56" height="56" decoding="async" loading="lazy"></span>
+      <div>
+        <h4>Alan Joy</h4>
+        <p>
+          Software engineer working L2/L3 managed hosting at Bobcares in Kochi —
+          escalations, malware forensics, data recovery and migrations. Most of these
+          articles started as notes from a ticket I didn't want to solve twice.
+          <a href="../about.html">More about me →</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="post-nav">
+      <a href="../blog.html" class="btn btn--ghost btn--sm">← All articles</a>
+      <a href="../contact.html" class="btn btn--primary btn--sm">Ask me about this</a>
+    </div>
+  </div>
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "The Load Was 117 and the CPUs Were Idle",
+  "description": "A production server sat at load 10 with 82% idle CPUs. Splitting the load average, doing the arithmetic on svctm and Little’s law, and reading wchan on blocked processes to find a storage IOPS ceiling no guest-side change could raise.",
+  "datePublished": "2026-09-09",
+  "author": { "@type": "Person", "name": "Alan Joy", "url": "https://alanjoy.site/about.html" },
+  "publisher": { "@type": "Person", "name": "Alan Joy" },
+  "mainEntityOfPage": "https://alanjoy.site/posts/load-average-lies-io-saturation.html",
+  "keywords": "Troubleshooting, load average, IO saturation, sar, linux, server administration"
+}
+</script>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__grid">
+      <div class="footer__about">
+        <a href="../index.html" class="brand">
+          <span class="brand__mark" aria-hidden="true">AJ</span>
+          <span>alanjoy<span class="brand__dot">.</span>site</span>
+        </a>
+        <p>Software engineer working Linux server administration and L2/L3 managed hosting support at Bobcares, Kochi. Forensics, recovery and migrations.</p>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.03-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+          </a>
+          <a href="https://github.com/careersalanjantony-bit" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.2c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6.01 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.65.24 2.88.12 3.18.77.84 1.23 1.92 1.23 3.24 0 4.63-2.8 5.65-5.48 5.95.43.37.81 1.1.81 2.22v3.3c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+          </a>
+          <a href="mailto:alanjoy905@gmail.com" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../about.html">About</a></li>
+          <li><a href="../services.html">Services</a></li>
+          <li><a href="../projects.html">Projects</a></li>
+          <li><a href="../blog.html">Blog</a></li>
+          <li><a href="../contact.html">Contact</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Writing</h4>
+        <ul>
+          <li><a href="../posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
+          <li><a href="../posts/linux-server-hardening-checklist.html">Server hardening</a></li>
+          <li><a href="../posts/load-average-lies-io-saturation.html">Load &amp; I/O triage</a></li>
+          <li><a href="../posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
+          <li><a href="../posts/detecting-a-compromised-server.html">Incident response</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:alanjoy905@gmail.com">alanjoy905@gmail.com</a></li>
+          <li><a href="https://www.linkedin.com/in/alan-joy-6967731a7/" target="_blank" rel="noopener">LinkedIn profile</a></li>
+          <li><a href="../contact.html">Start a project</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p>&copy; <span data-year>2026</span> Alan Joy. All rights reserved.</p>
+      <p>Built by hand — HTML, CSS &amp; vanilla JS. No trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script src="../assets/js/main.js?v=3"></script>
+
+</body>
+</html>

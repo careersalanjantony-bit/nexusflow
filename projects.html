@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=20260905">
+<link rel="stylesheet" href="assets/css/main.css?v=3">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070d'/%3E%3Ctext x='32' y='43' font-family='monospace' font-size='30' font-weight='700' fill='%2322d3ee' text-anchor='middle'%3EAJ%3C/text%3E%3C/svg%3E">
 <title>Projects &amp; Incidents — Linux Infrastructure Work by Alan Joy</title>
 <meta name="description" content="Real production work: a PHP 5.6 to 8.2 AWS migration with a 176 GB database, InnoDB data recovery, rootkit containment, high-load triage and monitoring.">
@@ -103,6 +103,17 @@
         <p>Led the move of a high-traffic AWS-hosted client onto Ubuntu 24.04, Apache 2.4 and MariaDB 10.11 with a ~176 GB database. Header-based ALB routing let the new stack serve real traffic for testing before anyone was cut over, backed by a full dump/restore sync and a Gitolite auto-deploy pipeline.</p>
         <div class="project__tags"><span>AWS ALB</span><span>Ubuntu 24.04</span><span>MariaDB 10.11</span><span>Gitolite</span><span>PHP 8.2</span></div>
         <p class="project__impact">→ Seconds-level target-group rollback path</p>
+      </article>
+
+      <article class="card project reveal" data-tags="performance troubleshooting incident">
+        <div class="project__top">
+          <span class="card__icon" aria-hidden="true">📉</span>
+          <span class="project__badge">Root cause</span>
+        </div>
+        <h3>Load average 117 on an idle server</h3>
+        <p>A 16-core box alarmed at load 117 with its CPUs 82% idle. Traced to storage: the primary disk was serving 141 requests/second against a 144 ceiling, so ~150 requests sat permanently queued and every process waiting on them counted toward the load. Delivered an evidence-backed RCA separating what the guest could fix from the hypervisor limit it could not.</p>
+        <div class="project__tags"><span>sar</span><span>Little&#39;s law</span><span>D-state / wchan</span><span>XFS</span><span>KVM</span></div>
+        <p class="project__impact">→ Ceiling proven with arithmetic, not guesswork</p>
       </article>
 
       <article class="card project reveal" data-tags="performance troubleshooting" data-delay="1">
@@ -254,7 +265,7 @@
         <ul>
           <li><a href="posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
           <li><a href="posts/linux-server-hardening-checklist.html">Server hardening</a></li>
-          <li><a href="posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="posts/load-average-lies-io-saturation.html">Load &amp; I/O triage</a></li>
           <li><a href="posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
           <li><a href="posts/detecting-a-compromised-server.html">Incident response</a></li>
         </ul>
@@ -281,7 +292,7 @@
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
 
-<script src="assets/js/main.js?v=20260905"></script>
+<script src="assets/js/main.js?v=3"></script>
 
 </body>
 </html>
