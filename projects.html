@@ -105,6 +105,17 @@
         <p class="project__impact">→ Seconds-level target-group rollback path</p>
       </article>
 
+      <article class="card project reveal" data-tags="performance troubleshooting incident">
+        <div class="project__top">
+          <span class="card__icon" aria-hidden="true">📉</span>
+          <span class="project__badge">Root cause</span>
+        </div>
+        <h3>Load average 117 on an idle server</h3>
+        <p>A 16-core box alarmed at load 117 with its CPUs 82% idle. Traced to storage: the primary disk was serving 141 requests/second against a 144 ceiling, so ~150 requests sat permanently queued and every process waiting on them counted toward the load. Delivered an evidence-backed RCA separating what the guest could fix from the hypervisor limit it could not.</p>
+        <div class="project__tags"><span>sar</span><span>Little&#39;s law</span><span>D-state / wchan</span><span>XFS</span><span>KVM</span></div>
+        <p class="project__impact">→ Ceiling proven with arithmetic, not guesswork</p>
+      </article>
+
       <article class="card project reveal" data-tags="performance troubleshooting" data-delay="1">
         <div class="project__top">
           <span class="card__icon" aria-hidden="true">⚡</span>
@@ -254,7 +265,7 @@
         <ul>
           <li><a href="posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
           <li><a href="posts/linux-server-hardening-checklist.html">Server hardening</a></li>
-          <li><a href="posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="posts/load-average-lies-io-saturation.html">Load &amp; I/O triage</a></li>
           <li><a href="posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
           <li><a href="posts/detecting-a-compromised-server.html">Incident response</a></li>
         </ul>

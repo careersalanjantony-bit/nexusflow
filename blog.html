@@ -100,6 +100,21 @@
 
     <div class="grid grid--3" id="post-list">
 
+      <a class="card post-card reveal" href="posts/load-average-lies-io-saturation.html" data-tags="troubleshooting performance load io storage sar">
+        <div class="post-card__meta">
+          <span class="tag">Troubleshooting</span>
+          <time datetime="2026-09-09">9 Sep 2026</time>
+          <span>· 15 min</span>
+        </div>
+        <h3>The Load Was 117 and the CPUs Were Idle</h3>
+        <p>
+          A real root-cause investigation: splitting the load average, doing the
+          arithmetic on service time and Little's law, and reading <code>wchan</code> on
+          blocked processes to find a storage ceiling no guest-side change could raise.
+        </p>
+        <span class="post-card__more">Read the investigation <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+
       <a class="card post-card reveal" href="posts/zero-downtime-cpanel-migration.html" data-tags="migrations dns cpanel rsync">
         <div class="post-card__meta">
           <span class="tag">Migrations</span>
@@ -251,7 +266,7 @@
         <ul>
           <li><a href="posts/zero-downtime-cpanel-migration.html">Server migrations</a></li>
           <li><a href="posts/linux-server-hardening-checklist.html">Server hardening</a></li>
-          <li><a href="posts/diagnosing-high-server-load.html">Load troubleshooting</a></li>
+          <li><a href="posts/load-average-lies-io-saturation.html">Load &amp; I/O triage</a></li>
           <li><a href="posts/email-deliverability-spf-dkim-dmarc.html">Email deliverability</a></li>
           <li><a href="posts/detecting-a-compromised-server.html">Incident response</a></li>
         </ul>
